@@ -1,0 +1,26 @@
+name: Manual KBC Push All
+description: Push configurations to Keboola Connection projects ({{ projects }})
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  Push_All:
+    # Dynamic generated value
+    environment: {{ environment_spec }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/install
+        with:
+          githubToken: {% raw %}${{ secrets.GITHUB_TOKEN }}{% endraw %}
+
+      # Generated steps {% for step in steps %}
+      - name: Push configurations to {{ step.name }}
+        uses: ./.github/actions/kbc_pull
+        with:
+          workdir: "{{ step.with.workdir }}"
+          kbcStorageApiToken: {% raw %}${{ secrets.{% endraw %}{{ step.with.kbcStorageApiToken }}{% raw %} }}{% endraw %}
+          kbcProjectId: {% raw %}${{ vars.{% endraw %}{{ step.with.kbcProjectId }}{% raw %} }}{% endraw %}
+          kbcBranchId: {% raw %}${{ vars.{% endraw %}{{ step.with.kbcBranchId }}{% raw %} }}{% endraw %}
+      {% endfor %}# End generated steps

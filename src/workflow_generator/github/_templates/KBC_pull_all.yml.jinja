@@ -1,0 +1,39 @@
+name: Manual KBC Pull {{ projects }}
+description: Pull configurations from Keboola Connection projects ({{ projects }})
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  Pull_All:
+    # Generated value
+    environment: {{ environment_spec }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/install
+        with:
+          githubToken: {% raw %}${{ secrets.GITHUB_TOKEN }}{% endraw %}
+
+      # Generated steps {% for step in steps %}
+      - name: Pull configurations from {{ step.project }}
+        uses: ./.github/actions/kbc_pull
+        with:
+          workdir: "{{ step.with.workdir }}"
+          kbcStackUrl: {% raw %}${{ vars.{% endraw %}{{ step.with.kbcStackUrl }}{% raw %} }}{% endraw %}
+          kbcStorageApiToken: {% raw %}${{ secrets.{% endraw %}{{ step.with.kbcStorageApiToken }}{% raw %} }}{% endraw %}
+          kbcProjectId: {% raw %}${{ vars.{% endraw %}{{ step.with.kbcProjectId }}{% raw %} }}{% endraw %}
+          kbcBranchId: {% raw %}${{ vars.{% endraw %}{{ step.with.kbcBranchId }}{% raw %} }}{% endraw %}
+      {% endfor %}# End generated steps
+
+      - name: Commit and push
+        run: |
+          apt-get update && apt-get install -y tree
+          tree -a
+          currentDate=`date +%Y-%m-%d:%T%Z`
+          pull_log=`cat "$RUNNER_TEMP/log.txt"`
+          git config --global user.name 'Keboola CLI'
+          git config --global user.email 'keboola-cli@users.noreply.github.com'
+          git add -A
+          git commit -a -m "Manual KBC pull $currentDate" -m "$pull_log" || true
+          git push --force

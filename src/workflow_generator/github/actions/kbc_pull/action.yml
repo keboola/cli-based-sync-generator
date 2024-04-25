@@ -1,0 +1,67 @@
+name: Pulling from Keboola
+description: Pulling from Keboola
+inputs:
+  workdir:
+    description: Working directory
+    required: true
+  kbcUrl:
+    description: Keboola Connection Stack URL
+    required: true
+  kbcStorageApiToken:
+    description: Keboola Connection Storage API Token
+    required: true
+  kbcProjectId:
+    description: Keboola Connection Project ID
+    required: true
+  kbcBranchId:
+    description: Keboola Connection Branch ID
+    required: true
+runs:
+  using: "composite"
+  steps:
+    # Pull remote project's state
+    - name: Init data from Keboola connection project
+      env:
+        # filled by the script
+        KBC_STORAGE_API_TOKEN: ${{ inputs.kbcStorageApiToken }}
+        KBC_PROJECT_ID: ${{ inputs.kbcProjectId }}
+        KBC_BRANCH_ID: ${{ inputs.kbcBranchId }}
+        KBC_URL: ${{ inputs.kbcUrl }}
+        WORKDIR: ${{ inputs.workdir }}
+      # filled by the script
+      id: kbc_init
+      run: |
+        set -eo pipefail
+
+        # Kontrola, jestli jsou nastaveny potřebné proměnné prostředí
+        required_vars=(KBC_STORAGE_API_TOKEN KBC_PROJECT_ID KBC_BRANCH_ID WORKDIR KBC_URL)
+        for var in "${required_vars[@]}"; do
+          if [ -z "${!var}" ]; then
+            echo "Error: Environment variable $var is not set." >&2
+            exit 1
+          fi
+        done
+        
+        # Check if the directory exists
+        if [ -d "$WORKDIR" ]; then
+          echo "Directory '$WORKDIR' exists. Removing..."
+          rm -rf "$WORKDIR"
+          if [ $? -eq 0 ]; then
+            echo "Directory was successfully removed."
+          else
+            echo "Failed to remove directory."
+            return 1
+          fi
+        fi
+        mkdir -p "$WORKDIR"
+        if [ $? -eq 0 ]; then
+          echo "Directory was successfully created."
+        else
+          echo "Failed to create directory."
+          return 1
+        fi
+        
+        ls "$WORKDIR"
+        
+        kbc init -t "$KBC_STORAGE_API_TOKEN" -H "$KBC_URL" -b "$KBC_BRANCH_ID" -d "$WORKDIR" --allow-target-env --ci=false --verbose 2>&1 | tee "$RUNNER_TEMP/log.txt"
+      shell: bash

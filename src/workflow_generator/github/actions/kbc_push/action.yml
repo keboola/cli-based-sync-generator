@@ -1,0 +1,50 @@
+name: Pushing to Keboola
+description: Pushing to Keboola
+inputs:
+  workdir:
+    description: Working directory
+    required: true
+  kbcStorageApiToken:
+    description: Keboola Connection Storage API Token
+    required: true
+  kbcProjectId:
+    description: Keboola Connection Project ID
+    required: true
+  kbcBranchId:
+    description: Keboola Connection Branch ID
+    required: true
+runs:
+  using: "composite"
+  steps:
+    # Pull remote project's state
+    - name: Push to Keboola Connection
+      env:
+        # filled by the script
+        KBC_STORAGE_API_TOKEN: ${{ inputs.kbcStorageApiToken }}
+        KBC_PROJECT_ID: ${{ inputs.kbcProjectId }}
+        KBC_BRANCH_ID: ${{ inputs.kbcBranchId }}
+        WORKDIR: ${{ inputs.workdir }}
+      # filled by the script
+      id: kbc_push
+      run: |
+        set -eo pipefail
+
+        # Kontrola, jestli jsou nastaveny potřebné proměnné prostředí
+        required_vars=(KBC_STORAGE_API_TOKEN KBC_PROJECT_ID KBC_BRANCH_ID WORKDIR)
+        for var in "${required_vars[@]}"; do
+          if [ -z "${!var}" ]; then
+            echo "Error: Environment variable $var is not set." >&2
+            exit 1
+          fi
+        done
+        
+        # Cesta k souboru .env.local
+        ENV_FILE="$WORKDIR/.env.local"
+        
+        echo "KBC_STORAGE_API_TOKEN=\"$KBC_STORAGE_API_TOKEN\"" > "$ENV_FILE"
+        echo "KBC_PROJECT_ID=\"$KBC_PROJECT_ID\"" >> "$ENV_FILE"
+        echo "KBC_BRANCH_ID=\"$KBC_BRANCH_ID\"" >> "$ENV_FILE"
+        
+        # Spuštění kbc push s logováním
+        kbc push -d "$WORKDIR" --force --verbose 2>&1 | tee "$RUNNER_TEMP/log.txt"
+      shell: bash
