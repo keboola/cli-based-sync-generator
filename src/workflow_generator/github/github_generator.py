@@ -4,10 +4,10 @@ import shutil
 
 from ..base.workflow_generator import WorkflowGeneratorBase, WorkflowTemplate
 
-TEMPLATES_DIR = "src/workflow_generator/github/_templates"
-TEMPLATE_OUTPUT_DIR = "src/workflow_generator/github/workflows"
-ACTIONS_DIR = "src/workflow_generator/github/actions"
-OUTPUT_DIR = "src/workflow_generator/github/output"
+TEMPLATES_DIR = ".app/src/workflow_generator/github/_templates"
+TEMPLATE_OUTPUT_DIR = ".app/src/workflow_generator/github/workflows"
+ACTIONS_DIR = ".app/src/workflow_generator/github/actions"
+OUTPUT_DIR = ".app/src/workflow_generator/github/output"
 
 # Define template configurations
 templates = [
