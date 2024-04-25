@@ -34,14 +34,13 @@ class GithubGenerator(WorkflowGeneratorBase):
 
     def get_manual(self):
         manual = f"Please create the following environments and secrets in your Github repository:\n"
-        for environment in self.environments:
-            for project in self.projects:
-                manual += f"  1. Create a new environment with the name '{environment}'\n"
-                manual += f"  2. Set the branch ID as '{project}_BRANCH_ID' in the environment variables\n"
-                manual += f"  3. Set the project ID as '{project}_PROJECT_ID' in the environment variables\n"
-                manual += f"  4. Set the storage API token as '{project}_TOKEN' in the environment !secrets!\n"
-                manual += f"  5. Set the stack URL as '{project}_STACK_URL' in the environment variables\n"
-                manual += f"  6. Run the workflow manually for the '{environment}' branch in the project '{project}'\n"
+        for project in self.projects:
+            manual += (f"  1. Create a new environment with names of all your defined:"
+                       f" '{[env for env in self.environments]}'\n")
+            manual += f"  2. Set the branch ID as '{project}_BRANCH_ID' in the environment variables\n"
+            manual += f"  3. Set the project ID as '{project}_PROJECT_ID' in the environment variables\n"
+            manual += f"  4. Set the storage API token as '{project}_TOKEN' in the environment !secrets!\n"
+            manual += f"  5. Set the stack URL as '{project}_STACK_URL' in the environment variables\n"
         return manual
 
     def get_zip(self, output_dir: str, zip_name: str):
