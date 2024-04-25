@@ -10,7 +10,7 @@ from .github.github_generator import GithubGenerator
 from typing import List
 
 GITHUB_KEY = 'github'
-OUTPUT_DIR = "../OUTPUT"
+OUTPUT_DIR = "./app/OUTPUT"
 
 
 class WorkflowGenerator:
