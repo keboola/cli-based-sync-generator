@@ -1,5 +1,5 @@
 name: Manual KBC Push All
-description: Push configurations to Keboola Connection projects (L1, L0)
+description: Push configurations to Keboola Connection projects (d)
 on:
   workflow_dispatch:
 permissions:
@@ -9,8 +9,7 @@ jobs:
     # Dynamic generated value
     environment: |-
       ${{
-         github.ref_name == 'main' && 'prod'
-      || github.ref_name == 'dev' && 'dev'
+         github.ref_name == 's' && 's'
       }}
     runs-on: ubuntu-latest
     steps:
@@ -20,19 +19,11 @@ jobs:
           githubToken: ${{ secrets.GITHUB_TOKEN }}
 
       # Generated steps 
-      - name: Push configurations to L1
+      - name: Push configurations to d
         uses: ./.github/actions/kbc_pull
         with:
-          workdir: "L1"
-          kbcStorageApiToken: ${{ secrets.L1_TOKEN }}
-          kbcProjectId: ${{ vars.L1_PROJECT_ID }}
-          kbcBranchId: ${{ vars.L1_BRANCH_ID }}
-      
-      - name: Push configurations to L0
-        uses: ./.github/actions/kbc_pull
-        with:
-          workdir: "L0"
-          kbcStorageApiToken: ${{ secrets.L0_TOKEN }}
-          kbcProjectId: ${{ vars.L0_PROJECT_ID }}
-          kbcBranchId: ${{ vars.L0_BRANCH_ID }}
+          workdir: "d"
+          kbcStorageApiToken: ${{ secrets.d_TOKEN }}
+          kbcProjectId: ${{ vars.d_PROJECT_ID }}
+          kbcBranchId: ${{ vars.d_BRANCH_ID }}
       # End generated steps

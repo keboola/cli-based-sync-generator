@@ -2,12 +2,12 @@ from typing import List
 import os
 import shutil
 
-from workflow_generator_base import BaseWorkflowGenerator, WorkflowTemplate
+from ..base.workflow_generator import WorkflowGeneratorBase, WorkflowTemplate
 
-TEMPLATES_DIR = "workflow_generator/github/_templates"
-TEMPLATE_OUTPUT_DIR = "workflow_generator/github/workflows"
-ACTIONS_DIR = "workflow_generator/github/actions"
-OUTPUT_DIR = "workflow_generator/github/output"
+TEMPLATES_DIR = "src/workflow_generator/github/_templates"
+TEMPLATE_OUTPUT_DIR = "src/workflow_generator/github/workflows"
+ACTIONS_DIR = "src/workflow_generator/github/actions"
+OUTPUT_DIR = "src/workflow_generator/github/output"
 
 # Define template configurations
 templates = [
@@ -16,7 +16,7 @@ templates = [
 ]
 
 
-class GithubGenerator(BaseWorkflowGenerator):
+class GithubGenerator(WorkflowGeneratorBase):
 
     def __init__(self, environments: List[str], projects: List[str]):
         self.environments = environments

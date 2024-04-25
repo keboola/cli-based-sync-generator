@@ -1,5 +1,5 @@
-name: Manual KBC Pull L1, L0
-description: Pull configurations from Keboola Connection projects (L1, L0)
+name: Manual KBC Pull d
+description: Pull configurations from Keboola Connection projects (d)
 on:
   workflow_dispatch:
 permissions:
@@ -9,8 +9,7 @@ jobs:
     # Generated value
     environment: |-
       ${{
-         github.ref_name == 'main' && 'prod'
-      || github.ref_name == 'dev' && 'dev'
+         github.ref_name == 's' && 's'
       }}
     runs-on: ubuntu-latest
     steps:
@@ -23,20 +22,11 @@ jobs:
       - name: Pull configurations from 
         uses: ./.github/actions/kbc_pull
         with:
-          workdir: "L1"
-          kbcStackUrl: ${{ vars.L1_STACK_URL }}
-          kbcStorageApiToken: ${{ secrets.L1_TOKEN }}
-          kbcProjectId: ${{ vars.L1_PROJECT_ID }}
-          kbcBranchId: ${{ vars.L1_BRANCH_ID }}
-      
-      - name: Pull configurations from 
-        uses: ./.github/actions/kbc_pull
-        with:
-          workdir: "L0"
-          kbcStackUrl: ${{ vars.L0_STACK_URL }}
-          kbcStorageApiToken: ${{ secrets.L0_TOKEN }}
-          kbcProjectId: ${{ vars.L0_PROJECT_ID }}
-          kbcBranchId: ${{ vars.L0_BRANCH_ID }}
+          workdir: "d"
+          kbcStackUrl: ${{ vars.d_STACK_URL }}
+          kbcStorageApiToken: ${{ secrets.d_TOKEN }}
+          kbcProjectId: ${{ vars.d_PROJECT_ID }}
+          kbcBranchId: ${{ vars.d_BRANCH_ID }}
       # End generated steps
 
       - name: Commit and push

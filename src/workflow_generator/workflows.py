@@ -2,10 +2,11 @@ from pathlib import Path
 import sys
 
 path_root = Path(__file__)
+print(str(path_root))
 sys.path.append(str(path_root))
 
-from src.workflow_generator.base.workflow_generator_base import BaseWorkflowGenerator
-from src.workflow_generator.github.github_generator import GithubGenerator
+from .base.workflow_generator import WorkflowGeneratorBase
+from .github.github_generator import GithubGenerator
 from typing import List
 
 GITHUB_KEY = 'github'
@@ -16,7 +17,7 @@ class WorkflowGenerator:
     _platform: str
     _environments: List[str]
     _projects: List[str]
-    _generator: BaseWorkflowGenerator
+    _generator: WorkflowGeneratorBase
 
     def __init__(self, platform: str, environments: List[str], projects: List[str]):
         self._platform = platform
@@ -32,7 +33,7 @@ class WorkflowGenerator:
     def get_manual(self):
         return self._manual
 
-    def _get_generator(self) -> BaseWorkflowGenerator:
+    def _get_generator(self) -> WorkflowGeneratorBase:
         if self._platform == GITHUB_KEY:
             return GithubGenerator(self._environments, self._projects)
         else:
