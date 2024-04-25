@@ -1,11 +1,14 @@
 import streamlit as st
 from streamlit_tags import st_tags
 import base64
+import os
 
 from src.workflow_generator.workflows import WorkflowGenerator, GITHUB_KEY
 
-logo_image = base64.b64encode(open("src/images/keboola.png", "rb").read()).decode()
-logo_html = f"""<div style="display: flex; justify-content: flex-end;"><img src="data:image/png;base64,{logo_image}" style="width: 100px; margin-left: -10px;"></div>"""
+
+logo_image = base64.b64encode(open(os.path.abspath("./app/src/keboola.png"), "rb").read()).decode()
+logo_html = f"""<div style="display: flex; justify-content: flex-end;"><img src="data:image/png;base64,
+{logo_image}" style="width: 100px; margin-left: -10px;"></div>"""
 
 
 def main():
