@@ -7,6 +7,7 @@ from ..base.workflow_generator import WorkflowGeneratorBase, WorkflowTemplate
 TEMPLATES_DIR = "./app/src/workflow_generator/github/_templates"
 TEMPLATE_OUTPUT_DIR = "./app/src/workflow_generator/github/workflows"
 ACTIONS_DIR = "./app/src/workflow_generator/github/actions"
+GITIGNORE_FILE = "./app/src/workflow_generator/github/_additional_files/.gitignore"
 OUTPUT_DIR = "./app/src/workflow_generator/github/output"
 
 # Define template configurations
@@ -61,7 +62,7 @@ class GithubGenerator(WorkflowGeneratorBase):
 
                 shutil.copytree(source_folder, destination_path, dirs_exist_ok=True)
 
-        return self._create_zip_file([destination_folder], output_dir, zip_name)
+        return self._create_zip_file([destination_folder, GITIGNORE_FILE], output_dir, zip_name)
 
     def _generate_environment_spec(self):
         """
