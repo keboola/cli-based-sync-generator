@@ -1,6 +1,7 @@
 # base.py
 from typing import List
 import os
+import shutil
 import jinja2
 import zipfile
 
@@ -40,6 +41,8 @@ class WorkflowGeneratorBase:
         raise NotImplementedError
 
     def _render_template(self, template: WorkflowTemplate):
+        if os.path.exists(template.template_output_dir):
+            shutil.rmtree(template.template_output_dir)
         output_file_path = f"{template.template_output_dir}/{template.filled_file}"
         # Setup Jinja environment and load template
         template_loader = jinja2.FileSystemLoader(searchpath=template.template_dir)
@@ -48,8 +51,6 @@ class WorkflowGeneratorBase:
 
         # Render the template with data
         output = template_jinja.render(self._template_data)
-
-        print(template.template_output_dir)
 
         # Save the rendered template to a file
         with open(output_file_path, 'w') as f:
@@ -91,6 +92,3 @@ class WorkflowGeneratorBase:
                     print(f"Path {path} not found.")
         print(f"Zip file {zip_file_path} was created.")
         return zip_file_path, self._zip_file_name
-
-
-
