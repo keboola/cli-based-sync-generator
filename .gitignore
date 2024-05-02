@@ -1,1 +1,2 @@
 .idea
+src/workflow_generator/github/workflows/.*
