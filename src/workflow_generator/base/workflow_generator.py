@@ -19,13 +19,15 @@ class WorkflowTemplate:
 
 
 class WorkflowGeneratorBase:
+    _root_path: str
     _generated_files = []
     _templates: List[WorkflowTemplate]
     _template_data = {}
     _zip_output_folder: str
     _zip_file_name: str
 
-    def __init__(self, template_data: {}, list_of_templates: List[WorkflowTemplate]):
+    def __init__(self, root_path, template_data: {}, list_of_templates: List[WorkflowTemplate]):
+        self._root_path = root_path
         self._templates = list_of_templates
         self._template_data = template_data
 
@@ -46,6 +48,8 @@ class WorkflowGeneratorBase:
 
         # Render the template with data
         output = template_jinja.render(self._template_data)
+
+        print(template.template_output_dir)
 
         # Save the rendered template to a file
         with open(output_file_path, 'w') as f:

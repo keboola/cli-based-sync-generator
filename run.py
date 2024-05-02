@@ -1,12 +1,12 @@
 import streamlit as st
-from streamlit_tags import st_tags
+from pathlib import Path
 import base64
-import os
 
 from src.workflow_generator.workflows import WorkflowGenerator, GITHUB_KEY
 
+root_path = Path(__file__).parent
 
-logo_image = base64.b64encode(open(os.path.abspath("./app/src/images/keboola.png"), "rb").read()).decode()
+logo_image = base64.b64encode(open(f"{root_path}/src/images/keboola.png", "rb").read()).decode()
 logo_html = f"""<div style="display: flex; justify-content: flex-end;"><img src="data:image/png;base64,
 {logo_image}" style="width: 100px; margin-left: -10px;"></div>"""
 
@@ -43,7 +43,8 @@ def display_inputs(input_type, title):
         st.session_state[f'{input_type}_1'] = ""
         current_count = 1
     for i in range(1, current_count + 1):
-        st.text_input("", key=f'{input_type}_{i}', on_change=manage_inputs, args=(input_type,))
+        st.text_input(f'{input_type}_{i}', label_visibility='hidden', key=f'{input_type}_{i}', on_change=manage_inputs,
+                      args=(input_type,))
 
 
 def data():
@@ -60,6 +61,7 @@ def data():
             environments.append(st.session_state[f'environments_{i}'])
 
     return projects, environments
+
 
 def main():
     st.markdown(f"{logo_html}", unsafe_allow_html=True)
@@ -83,7 +85,7 @@ def main():
 
         progress_bar.progress(25)
 
-        generator = WorkflowGenerator(platform, environments, projects)
+        generator = WorkflowGenerator(str(root_path), platform, environments, projects)
         progress_bar.progress(50)
 
         zip_path, zip_file_name = generator.get_zip_file()

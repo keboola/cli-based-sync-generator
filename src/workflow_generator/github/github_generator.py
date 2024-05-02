@@ -4,11 +4,11 @@ import shutil
 
 from ..base.workflow_generator import WorkflowGeneratorBase, WorkflowTemplate
 
-TEMPLATES_DIR = "./app/src/workflow_generator/github/_templates"
-TEMPLATE_OUTPUT_DIR = "./app/src/workflow_generator/github/workflows"
-ACTIONS_DIR = "./app/src/workflow_generator/github/actions"
-GITIGNORE_FILE = "./app/src/workflow_generator/github/_additional_files/.gitignore"
-OUTPUT_DIR = "./app/src/workflow_generator/github/output"
+TEMPLATES_DIR = "/src/workflow_generator/github/_templates"
+TEMPLATE_OUTPUT_DIR = "/src/workflow_generator/github/workflows"
+ACTIONS_DIR = "/src/workflow_generator/github/actions"
+GITIGNORE_FILE = "/src/workflow_generator/github/_additional_files/.gitignore"
+OUTPUT_DIR = "/src/workflow_generator/github/generated_files"
 
 # Define template configurations
 templates = [
@@ -19,7 +19,8 @@ templates = [
 
 class GithubGenerator(WorkflowGeneratorBase):
 
-    def __init__(self, environments: List[str], projects: List[str]):
+    def __init__(self, root_path: str, environments: List[str], projects: List[str]):
+        self.root_path = root_path
         self.environments = environments
         self.projects = projects
         self.template_data = {
@@ -28,10 +29,15 @@ class GithubGenerator(WorkflowGeneratorBase):
             "steps": self._generate_steps()
         }
         self.templates = [
-            WorkflowTemplate(TEMPLATES_DIR, template['template_file'], TEMPLATE_OUTPUT_DIR, template['filled_file']) for
+            WorkflowTemplate(self._add_root_path(TEMPLATES_DIR), template['template_file'],
+                             self._add_root_path(TEMPLATE_OUTPUT_DIR),
+                             template['filled_file']) for
             template
             in templates]
-        super().__init__(self.template_data, self.templates)
+        super().__init__(root_path, self.template_data, self.templates)
+
+    def _add_root_path(self, path: str):
+        return f"{self.root_path}{path}"
 
     def get_manual(self):
         manual = f"Please create the following environments and secrets in your Github repository:\n"
@@ -46,15 +52,17 @@ class GithubGenerator(WorkflowGeneratorBase):
 
     def get_zip(self, output_dir: str, zip_name: str):
         self._generate()
-
-        destination_folder = f'{OUTPUT_DIR}/.github/'
+        folder_to_zip = f'{self._add_root_path(OUTPUT_DIR)}/'
+        destination_folder = f'{folder_to_zip}.github/'
 
         if os.path.exists(destination_folder):
             shutil.rmtree(destination_folder)
 
         os.makedirs(destination_folder)
 
-        for source_folder in [TEMPLATE_OUTPUT_DIR, ACTIONS_DIR]:
+        shutil.copy(self._add_root_path(GITIGNORE_FILE), folder_to_zip)
+
+        for source_folder in [self._add_root_path(TEMPLATE_OUTPUT_DIR), self._add_root_path(ACTIONS_DIR)]:
             if os.path.exists(source_folder):
                 folder_name = os.path.basename(source_folder)
 
@@ -62,7 +70,7 @@ class GithubGenerator(WorkflowGeneratorBase):
 
                 shutil.copytree(source_folder, destination_path, dirs_exist_ok=True)
 
-        return self._create_zip_file([destination_folder, GITIGNORE_FILE], output_dir, zip_name)
+        return self._create_zip_file([folder_to_zip], output_dir, zip_name)
 
     def _generate_environment_spec(self):
         """
