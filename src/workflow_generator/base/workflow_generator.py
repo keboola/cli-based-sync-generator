@@ -41,9 +41,8 @@ class WorkflowGeneratorBase:
         raise NotImplementedError
 
     def _render_template(self, template: WorkflowTemplate):
-        if os.path.exists(template.template_output_dir):
-            shutil.rmtree(template.template_output_dir)
-        os.makedirs(template.template_output_dir)
+        if not os.path.exists(template.template_output_dir):
+            os.makedirs(template.template_output_dir)
 
         output_file_path = f"{template.template_output_dir}/{template.filled_file}"
         # Setup Jinja environment and load template
