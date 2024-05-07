@@ -40,14 +40,28 @@ class GithubGenerator(WorkflowGeneratorBase):
         return f"{self.root_path}{path}"
 
     def get_manual(self):
-        manual = f"Please create the following environments and secrets in your Github repository:\n"
+        envs = ', '.join(self.environments)
+        manual = f" 1. Download generated Github CI/CD files in zip (button above).\n"
+        manual += f" 2. Create a new Github repository.\n"
+        manual += f" 3. Unpack Zip file and copy folder .Github to root of your repository.\n"
+        manual += f" 4. Create all defined Environments ({envs}) in the Github repository settings.\n"
+        manual += f"    - For sure, you can set allow ENV to the branch!\n"
+        manual += f" 5. Setup all following Variables or Secret for all Environments.\n\n"
+        manual += "| Detail | Variable | Secret |\n"
+        manual += "| --- | --- | --- |\n"
+        table_contents = []
         for project in self.projects:
-            manual += (f"  1. Create a new environment with names of all your defined:"
-                       f" '{[env for env in self.environments]}'\n")
-            manual += f"  2. Set the branch ID as '{project}_BRANCH_ID' in the environment variables\n"
-            manual += f"  3. Set the project ID as '{project}_PROJECT_ID' in the environment variables\n"
-            manual += f"  4. Set the storage API token as '{project}_TOKEN' in the environment !secrets!\n"
-            manual += f"  5. Set the stack URL as '{project}_STACK_URL' in the environment variables\n"
+            table_contents.append(f"| Set Keboola branch ID | 'KBC_BRANCHES_{project}' | |")
+            table_contents.append(f"| Set Keboola project ID | 'KBC_PROJECT_ID_{project}' | |")
+            table_contents.append(f"| Set Keboola storage API token | | 'KBC_STORAGE_API_TOKEN_{project}' |")
+            table_contents.append(f"| Set Keboola stack URL | 'KBC_STORAGE_API_HOST_{project}' | |")
+        table_contents.sort(reverse=True)
+        manual += '\n'.join(table_contents)
+        manual += '\n\n'
+        manual += f" TODO next steps will be updated.! \n"
+        manual += f" 6. Run manually Github workflow for pull all in your main branch.\n"
+        manual += f" 7. Create all branches for your environments.\n"
+        manual += f" 8. Run manually Github workflow for pull all in your other branch.\n"
         return manual
 
     def get_zip(self, output_dir: str, zip_name: str):
@@ -101,10 +115,10 @@ class GithubGenerator(WorkflowGeneratorBase):
                 "name": f"{project}",
                 "with": {
                     "workdir": project,
-                    "kbcStackUrl": f"{project}_STACK_URL",
-                    "kbcStorageApiToken": f"{project}_TOKEN",
-                    "kbcProjectId": f"{project}_PROJECT_ID",
-                    "kbcBranchId": f"{project}_BRANCH_ID"
+                    "kbcStorageApiHost": f"KBC_STORAGE_API_HOST_{project}",
+                    "kbcStorageApiToken": f"KBC_STORAGE_API_TOKEN_{project}",
+                    "kbcProjectId": f"KBC_PROJECT_ID_{project}",
+                    "kbcBranches": f"KBC_BRANCHES_{project}"
                 }
             }
             steps.append(step)

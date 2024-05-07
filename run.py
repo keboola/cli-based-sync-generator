@@ -65,7 +65,7 @@ def data():
 
 def main():
     st.markdown(f"{logo_html}", unsafe_allow_html=True)
-    st.title("Creating Github Actions workflow form")
+    st.title("Creating CI/CD workflow for Keboola Connection CLI")
 
     platform = st.selectbox("Select SCM platform", [GITHUB_KEY])
 
@@ -79,30 +79,20 @@ def main():
             st.warning("Please enter at least one project and one environment")
             return
 
-        progress_bar = st.progress(0)
-
-        st.write("Generating workflows...")
-
-        progress_bar.progress(25)
-
         generator = WorkflowGenerator(str(root_path), platform, environments, projects)
-        progress_bar.progress(50)
 
+        st.markdown("---")
         zip_path, zip_file_name = generator.get_zip_file()
-        progress_bar.progress(75)
-
-        st.write("Workflows generated!")
-
-        st.markdown(generator.get_manual())
-        progress_bar.progress(100)
 
         with open(zip_path, "rb") as file:
             st.download_button(
-                label="Download Zip file",
+                label=f"Download {platform} CI/CD workflow",
                 data=file,
                 file_name=zip_file_name,
                 mime="application/zip"
             )
+        st.markdown(f"## Setup Instructions ({platform}):")
+        st.markdown(generator.get_manual())
 
 
 if __name__ == "__main__":

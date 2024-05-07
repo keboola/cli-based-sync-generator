@@ -4,7 +4,7 @@ inputs:
   workdir:
     description: Working directory
     required: true
-  kbcUrl:
+  kbcStorageApiHost:
     description: Keboola Connection Stack URL
     required: true
   kbcStorageApiToken:
@@ -13,7 +13,7 @@ inputs:
   kbcProjectId:
     description: Keboola Connection Project ID
     required: true
-  kbcBranchId:
+  kbcBranches:
     description: Keboola Connection Branch ID
     required: true
 runs:
@@ -25,16 +25,16 @@ runs:
         # filled by the script
         KBC_STORAGE_API_TOKEN: ${{ inputs.kbcStorageApiToken }}
         KBC_PROJECT_ID: ${{ inputs.kbcProjectId }}
-        KBC_BRANCH_ID: ${{ inputs.kbcBranchId }}
-        KBC_URL: ${{ inputs.kbcUrl }}
+        KBC_BRANCHES: ${{ inputs.kbcBranches }}
+        KBC_STORAGE_API_HOST: ${{ inputs.kbcStorageApiHost }}
         WORKDIR: ${{ inputs.workdir }}
       # filled by the script
       id: kbc_init
       run: |
         set -eo pipefail
 
-        # Kontrola, jestli jsou nastaveny potřebné proměnné prostředí
-        required_vars=(KBC_STORAGE_API_TOKEN KBC_PROJECT_ID KBC_BRANCH_ID WORKDIR KBC_URL)
+        # Check, if required environment variables are set
+        required_vars=(KBC_STORAGE_API_TOKEN KBC_STORAGE_API_HOST KBC_PROJECT_ID KBC_BRANCHES WORKDIR)
         for var in "${required_vars[@]}"; do
           if [ -z "${!var}" ]; then
             echo "Error: Environment variable $var is not set." >&2
@@ -42,26 +42,18 @@ runs:
           fi
         done
         
-        # Check if the directory exists
-        if [ -d "$WORKDIR" ]; then
-          echo "Directory '$WORKDIR' exists. Removing..."
-          rm -rf "$WORKDIR"
-          if [ $? -eq 0 ]; then
-            echo "Directory was successfully removed."
-          else
-            echo "Failed to remove directory."
-            return 1
-          fi
-        fi
-        mkdir -p "$WORKDIR"
-        if [ $? -eq 0 ]; then
-          echo "Directory was successfully created."
+        # Working directory is ready and empty
+        if [ ! -d "$WORKDIR" ]; then
+          mkdir -p "$WORKDIR"
         else
-          echo "Failed to create directory."
-          return 1
+            if [ -n "$WORKDIR" ] && [ "$WORKDIR" != "/" ]; then
+                rm -rf "$WORKDIR"
+                mkdir -p "$WORKDIR"
+            fi
         fi
         
-        ls "$WORKDIR"
-        
-        kbc init -t "$KBC_STORAGE_API_TOKEN" -H "$KBC_URL" -b "$KBC_BRANCH_ID" -d "$WORKDIR" --allow-target-env --ci=false --verbose 2>&1 | tee "$RUNNER_TEMP/log.txt"
+        # Init data from Keboola connection project
+        kbc init -d "$WORKDIR" --allow-target-env --ci=false 2>&1 | tee "$RUNNER_TEMP/log.txt"
+      
+        echo "/.keboola/" >> "$WORKDIR"/.gitignore
       shell: bash

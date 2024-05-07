@@ -4,13 +4,16 @@ inputs:
   workdir:
     description: Working directory
     required: true
+  kbcStorageApiHost:
+    description: Keboola Connection Stack URL
+    required: true
   kbcStorageApiToken:
     description: Keboola Connection Storage API Token
     required: true
   kbcProjectId:
     description: Keboola Connection Project ID
     required: true
-  kbcBranchId:
+  kbcBranches:
     description: Keboola Connection Branch ID
     required: true
 runs:
@@ -22,15 +25,16 @@ runs:
         # filled by the script
         KBC_STORAGE_API_TOKEN: ${{ inputs.kbcStorageApiToken }}
         KBC_PROJECT_ID: ${{ inputs.kbcProjectId }}
-        KBC_BRANCH_ID: ${{ inputs.kbcBranchId }}
+        KBC_BRANCHES: ${{ inputs.kbcBranches }}
+        KBC_STORAGE_API_HOST: ${{ inputs.kbcStorageApiHost }}
         WORKDIR: ${{ inputs.workdir }}
       # filled by the script
       id: kbc_push
       run: |
         set -eo pipefail
 
-        # Kontrola, jestli jsou nastaveny potřebné proměnné prostředí
-        required_vars=(KBC_STORAGE_API_TOKEN KBC_PROJECT_ID KBC_BRANCH_ID WORKDIR)
+        # Check, if required environment variables are set
+        required_vars=(KBC_STORAGE_API_TOKEN KBC_STORAGE_API_HOST KBC_PROJECT_ID KBC_BRANCHES WORKDIR)
         for var in "${required_vars[@]}"; do
           if [ -z "${!var}" ]; then
             echo "Error: Environment variable $var is not set." >&2
@@ -38,13 +42,16 @@ runs:
           fi
         done
         
-        # Cesta k souboru .env.local
-        ENV_FILE="$WORKDIR/.env.local"
+        # Temporary directory
+        WORKDIR_TMP="$WORKDIR"_tmp
+        mkdir -p "$WORKDIR_TMP"
+       
+        # Need a new .keboola directory
+        kbc init -d "$WORKDIR_TMP" --allow-target-env --ci=false 2>&1 | tee "$RUNNER_TEMP/log.txt"
         
-        echo "KBC_STORAGE_API_TOKEN=\"$KBC_STORAGE_API_TOKEN\"" > "$ENV_FILE"
-        echo "KBC_PROJECT_ID=\"$KBC_PROJECT_ID\"" >> "$ENV_FILE"
-        echo "KBC_BRANCH_ID=\"$KBC_BRANCH_ID\"" >> "$ENV_FILE"
+        # Copy .keboola directory
+        rsync -av --progress "$WORKDIR_TMP/.keboola" "$WORKDIR/"
         
-        # Spuštění kbc push s logováním
+        # push to Keboola Connection
         kbc push -d "$WORKDIR" --force --verbose 2>&1 | tee "$RUNNER_TEMP/log.txt"
       shell: bash

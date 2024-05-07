@@ -1,12 +1,11 @@
-name: Manual KBC Pull {{ projects }}
-description: Pull configurations from Keboola Connection projects ({{ projects }})
+name: Manual KBC Pull ({{ projects }}) from Environment by branch
 on:
   workflow_dispatch:
 permissions:
   contents: write
 jobs:
   Pull_All:
-    # Generated value
+    # Dynamic generated value
     environment: {{ environment_spec }}
     runs-on: ubuntu-latest
     steps:
@@ -16,14 +15,14 @@ jobs:
           githubToken: {% raw %}${{ secrets.GITHUB_TOKEN }}{% endraw %}
 
       # Generated steps {% for step in steps %}
-      - name: Pull configurations from {{ step.project }}
+      - name: Pull configurations from {{ step.name }}
         uses: ./.github/actions/kbc_pull
         with:
           workdir: "{{ step.with.workdir }}"
-          kbcStackUrl: {% raw %}${{ vars.{% endraw %}{{ step.with.kbcStackUrl }}{% raw %} }}{% endraw %}
+          kbcStorageApiHost: {% raw %}${{ vars.{% endraw %}{{ step.with.kbcStorageApiHost }}{% raw %} }}{% endraw %}
           kbcStorageApiToken: {% raw %}${{ secrets.{% endraw %}{{ step.with.kbcStorageApiToken }}{% raw %} }}{% endraw %}
           kbcProjectId: {% raw %}${{ vars.{% endraw %}{{ step.with.kbcProjectId }}{% raw %} }}{% endraw %}
-          kbcBranchId: {% raw %}${{ vars.{% endraw %}{{ step.with.kbcBranchId }}{% raw %} }}{% endraw %}
+          kbcBranches: {% raw %}${{ vars.{% endraw %}{{ step.with.kbcBranches }}{% raw %} }}{% endraw %}
       {% endfor %}# End generated steps
 
       - name: Commit and push

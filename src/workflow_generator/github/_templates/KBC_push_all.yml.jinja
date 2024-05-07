@@ -1,5 +1,4 @@
-name: Manual KBC Push All
-description: Push configurations to Keboola Connection projects ({{ projects }})
+name: Manual KBC Push ({{ projects }}) to Environment by branch
 on:
   workflow_dispatch:
 permissions:
@@ -17,10 +16,11 @@ jobs:
 
       # Generated steps {% for step in steps %}
       - name: Push configurations to {{ step.name }}
-        uses: ./.github/actions/kbc_pull
+        uses: ./.github/actions/kbc_push
         with:
           workdir: "{{ step.with.workdir }}"
+          kbcStorageApiHost: {% raw %}${{ vars.{% endraw %}{{ step.with.kbcStorageApiHost }}{% raw %} }}{% endraw %}
           kbcStorageApiToken: {% raw %}${{ secrets.{% endraw %}{{ step.with.kbcStorageApiToken }}{% raw %} }}{% endraw %}
           kbcProjectId: {% raw %}${{ vars.{% endraw %}{{ step.with.kbcProjectId }}{% raw %} }}{% endraw %}
-          kbcBranchId: {% raw %}${{ vars.{% endraw %}{{ step.with.kbcBranchId }}{% raw %} }}{% endraw %}
+          kbcBranches: {% raw %}${{ vars.{% endraw %}{{ step.with.kbcBranches }}{% raw %} }}{% endraw %}
       {% endfor %}# End generated steps
