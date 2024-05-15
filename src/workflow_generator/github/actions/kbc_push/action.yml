@@ -49,6 +49,9 @@ runs:
         # Need a new .keboola directory
         kbc init -d "$WORKDIR_TMP" --allow-target-env --ci=false 2>&1 | tee "$RUNNER_TEMP/log.txt"
         
+        #validation of secure variables
+        python3 .github/actions/kbc_push/validations/secure_variable_validation.py "$WORKDIR_TMP"
+        
         # Copy .keboola directory
         rsync -av --progress "$WORKDIR_TMP/.keboola" "$WORKDIR/"
         

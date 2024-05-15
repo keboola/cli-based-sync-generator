@@ -17,7 +17,7 @@ runs:
       with:
         repository: "keboola/keboola-as-code"
         #latest: true
-        tag: "v2.23.0"
+        tag: "v2.24.0"
         fileName: "*_linux_amd64.zip"
         token: ${{ inputs.githubToken }}
         out-file-path: "${{ runner.temp }}/kbc"
