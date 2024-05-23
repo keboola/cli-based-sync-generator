@@ -22,7 +22,7 @@ jobs:
           kbcStorageApiHost: {% raw %}${{ vars.{% endraw %}{{ step.with.kbcStorageApiHost }}{% raw %} }}{% endraw %}
           kbcStorageApiToken: {% raw %}${{ secrets.{% endraw %}{{ step.with.kbcStorageApiToken }}{% raw %} }}{% endraw %}
           kbcProjectId: {% raw %}${{ vars.{% endraw %}{{ step.with.kbcProjectId }}{% raw %} }}{% endraw %}
-          kbcBranches: {% raw %}${{ vars.{% endraw %}{{ step.with.kbcBranches }}{% raw %} }}{% endraw %}
+          kbcBranchId: {% raw %}${{ vars.{% endraw %}{{ step.with.kbcBranchId }}{% raw %} }}{% endraw %}
       {% endfor %}# End generated steps
 
       - name: Commit and push
