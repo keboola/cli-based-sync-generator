@@ -13,7 +13,7 @@ inputs:
   kbcProjectId:
     description: Keboola Connection Project ID
     required: true
-  kbcBranches:
+  kbcBranchId:
     description: Keboola Connection Branch ID
     required: true
 runs:
@@ -25,7 +25,7 @@ runs:
         # filled by the script
         KBC_STORAGE_API_TOKEN: ${{ inputs.kbcStorageApiToken }}
         KBC_PROJECT_ID: ${{ inputs.kbcProjectId }}
-        KBC_BRANCHES: ${{ inputs.kbcBranches }}
+        KBC_BRANCH_ID: ${{ inputs.kbcBranchId }}
         KBC_STORAGE_API_HOST: ${{ inputs.kbcStorageApiHost }}
         WORKDIR: ${{ inputs.workdir }}
       # filled by the script
@@ -34,7 +34,7 @@ runs:
         set -eo pipefail
 
         # Check, if required environment variables are set
-        required_vars=(KBC_STORAGE_API_TOKEN KBC_STORAGE_API_HOST KBC_PROJECT_ID KBC_BRANCHES WORKDIR)
+        required_vars=(KBC_STORAGE_API_TOKEN KBC_STORAGE_API_HOST KBC_PROJECT_ID KBC_BRANCH_ID WORKDIR)
         for var in "${required_vars[@]}"; do
           if [ -z "${!var}" ]; then
             echo "Error: Environment variable $var is not set." >&2
@@ -54,6 +54,5 @@ runs:
         
         # Init data from Keboola connection project
         kbc init -d "$WORKDIR" --allow-target-env --ci=false 2>&1 | tee "$RUNNER_TEMP/log.txt"
-      
-        echo "/.keboola/" >> "$WORKDIR"/.gitignore
+
       shell: bash
