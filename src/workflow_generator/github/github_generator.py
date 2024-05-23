@@ -51,7 +51,7 @@ class GithubGenerator(WorkflowGeneratorBase):
         manual += "| --- | --- | --- |\n"
         table_contents = []
         for project in self.projects:
-            table_contents.append(f"| Set Keboola branch ID | 'KBC_BRANCHES_{project}' | |")
+            table_contents.append(f"| Set Keboola branch ID | 'KBC_BRANCH_ID_{project}' | |")
             table_contents.append(f"| Set Keboola project ID | 'KBC_PROJECT_ID_{project}' | |")
             table_contents.append(f"| Set Keboola storage API token | | 'KBC_STORAGE_API_TOKEN_{project}' |")
             table_contents.append(f"| Set Keboola stack URL | 'KBC_STORAGE_API_HOST_{project}' | |")
@@ -118,7 +118,7 @@ class GithubGenerator(WorkflowGeneratorBase):
                     "kbcStorageApiHost": f"KBC_STORAGE_API_HOST_{project}",
                     "kbcStorageApiToken": f"KBC_STORAGE_API_TOKEN_{project}",
                     "kbcProjectId": f"KBC_PROJECT_ID_{project}",
-                    "kbcBranches": f"KBC_BRANCHES_{project}"
+                    "kbcBranchId": f"KBC_BRANCH_ID_{project}"
                 }
             }
             steps.append(step)
