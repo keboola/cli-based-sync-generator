@@ -19,28 +19,32 @@ templates = [
 
 class GithubGenerator(WorkflowGeneratorBase):
 
-    def __init__(self, root_path: str, environments: List[str], projects: List[str]):
-        self.root_path = root_path
-        self.environments = environments
-        self.projects = projects
-        self.template_data = {
-            "projects": f"{', '.join(self.projects)}",
+    def __init__(self, root_path: str, environments: dict[object], project_mapping: dict[object]):
+        self._root_path = root_path
+        self._project_mapping = project_mapping
+        self._projects = [project['project_name'] for project in project_mapping]
+        self._environments = environments
+        print(self._environments)
+        print(self._project_mapping)
+
+        self._template_data = {
+            "projects": f"{', '.join(self._projects)}",
             "environment_spec": self._generate_environment_spec(),
             "steps": self._generate_steps()
         }
-        self.templates = [
+        self._templates = [
             WorkflowTemplate(self._add_root_path(TEMPLATES_DIR), template['template_file'],
                              self._add_root_path(TEMPLATE_OUTPUT_DIR),
                              template['filled_file']) for
             template
             in templates]
-        super().__init__(root_path, self.template_data, self.templates)
+        super().__init__(root_path, self._template_data, self._templates)
 
     def _add_root_path(self, path: str):
-        return f"{self.root_path}{path}"
+        return f"{self._root_path}{path}"
 
     def get_manual(self):
-        envs = ', '.join(self.environments)
+        envs = ', '.join([environment['env_name'] for environment in self._environments])
         manual = f" 1. Download generated Github CI/CD files in zip (button above).\n"
         manual += f" 2. Create a new Github repository.\n"
         manual += f" 3. Unpack Zip file and copy folder .Github to root of your repository.\n"
@@ -50,11 +54,11 @@ class GithubGenerator(WorkflowGeneratorBase):
         manual += "| Detail | Variable | Secret |\n"
         manual += "| --- | --- | --- |\n"
         table_contents = []
-        for project in self.projects:
+        for project in self._projects:
             table_contents.append(f"| Set Keboola branch ID | 'KBC_BRANCH_ID_{project}' | |")
             table_contents.append(f"| Set Keboola project ID | 'KBC_PROJECT_ID_{project}' | |")
-            table_contents.append(f"| Set Keboola storage API token | | 'KBC_STORAGE_API_TOKEN_{project}' |")
-            table_contents.append(f"| Set Keboola stack URL | 'KBC_STORAGE_API_HOST_{project}' | |")
+            table_contents.append(f"| Set Keboola storage API token | | 'KBC_SAPI_TOKEN_{project}' |")
+        table_contents.append(f"| Set Keboola stack URL | 'KBC_SAPI_HOST' | |")
         table_contents.sort(reverse=True)
         manual += '\n'.join(table_contents)
         manual += '\n\n'
@@ -91,18 +95,17 @@ class GithubGenerator(WorkflowGeneratorBase):
        Generates enviroment specification for Pull or Push operations
        """
         # Start the string with the special YAML syntax for literal block scalar
-        environment_spec = "|-\n      ${{\n         "
+        environment_spec = "${{"
         # Generate the conditions dynamically for each environment
         conditions = []
-        for environment in self.environments:
+        for environment in self._environments:
             # For each environment, create a condition that matches the branch name with the environment name
-            branch_name = 'main' if (environment == 'prod' or environment == 'production') else environment
-            condition = f"github.ref_name == '{branch_name}' && '{environment}'"
+            condition = f"github.ref_name == '{environment['branch']}' && '{environment['env_name']}'"
             # Add the condition to the list
             conditions.append(condition)
         # Join all conditions with the logical OR operator, ensuring proper indentation and line breaks
-        environment_spec += "\n      || ".join(conditions)
-        environment_spec += "\n      }}"
+        environment_spec += " || ".join(conditions)
+        environment_spec += " }}"
         return environment_spec
 
     def _generate_steps(self):
@@ -110,13 +113,13 @@ class GithubGenerator(WorkflowGeneratorBase):
         Generates steps for Pull or Push operations based on the projects and operation type specified.
         """
         steps = []
-        for project in self.projects:
+        for project in self._projects:
             step = {
                 "name": f"{project}",
                 "with": {
                     "workdir": project,
-                    "kbcStorageApiHost": f"KBC_STORAGE_API_HOST_{project}",
-                    "kbcStorageApiToken": f"KBC_STORAGE_API_TOKEN_{project}",
+                    "kbcSapiHost": f"KBC_SAPI_HOST",
+                    "kbcSapiToken": f"KBC_SAPI_TOKEN_{project}",
                     "kbcProjectId": f"KBC_PROJECT_ID_{project}",
                     "kbcBranchId": f"KBC_BRANCH_ID_{project}"
                 }

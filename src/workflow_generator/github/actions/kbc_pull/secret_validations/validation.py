@@ -1,3 +1,4 @@
+import logging
 import os
 import json
 import argparse
@@ -42,19 +43,16 @@ def write_encrypted(secure_encrypted):
     exit(-1)
 
 
-# TODO add option to a check if the moustache key is in the vault via API
-def check_vault_values(secure_keys):
-    pass
-
-
 def main(target_dir):
+    logging.info(f"Checking JSON keys and values in {target_dir}")
     for root, _, files in os.walk(target_dir):
         for file in files:
             if file.endswith('.json'):
                 check_json_keys_and_values(os.path.join(root, file))
     if secure_keys:
         write_encrypted([key for key in secure_keys if not key['is_vault_value']])
-        check_vault_values([key for key in secure_keys if key['is_vault_value']])
+    else:
+        print("No secure values found in the configurations - validation is ok")
 
 
 if __name__ == '__main__':

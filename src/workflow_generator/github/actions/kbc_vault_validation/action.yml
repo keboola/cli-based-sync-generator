@@ -1,0 +1,35 @@
+name: Keboola Vault validation Comparison
+description: Comparison Keboola project vault structure
+inputs:
+  destDir:
+    description: Working directory
+    required: true
+runs:
+  using: "composite"
+  steps:
+    - uses: actions/checkout@v4
+
+    - name: Merge Artifacts
+      uses: actions/upload-artifact/merge@v4
+      with:
+        name: vault_structures
+        pattern: vault_structure_*
+
+    - name: Download structures
+      uses: actions/download-artifact@v4
+      with:
+        name: vault_structures
+        path: ./vault_structures
+
+    - name: Compare storage structure
+      shell: bash
+      run: |
+        python3 .github/actions/kbc_vault_validation/scripts/validate.py \
+          --workdir="./vault_structures" 
+
+    - name: Save structure to artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: vault_structures_result
+        path: ./Vault_report.txt
+        retention-days: 5

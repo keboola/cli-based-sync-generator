@@ -1,5 +1,5 @@
-name: Pushing to Keboola
-description: Pushing to Keboola
+name: Push - dry run
+description: CLI dry run for push
 inputs:
   workdir:
     description: Working directory
@@ -19,8 +19,30 @@ inputs:
 runs:
   using: "composite"
   steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: get random number
+      id: random_number
+      uses: yakubique/random-number@v1.1
+      with:
+        min: 1
+        max: 1000
+
+    - name: Def out directory
+      id: def_dir
+      run: |
+        echo "OUT_DIR=cli_diff_${{ steps.random_number.outputs.number }}" >> "${GITHUB_ENV}"
+      shell: bash
+
+    - name: Def out file
+      id: def_file
+      run: |
+        echo "OUT_FILE=${{ inputs.workdir }}.txt" >> "${GITHUB_ENV}"
+      shell: bash
+
     # Pull remote project's state
-    - name: Push to Keboola Connection
+    - name: CLI push dry run
       env:
         # filled by the script
         KBC_STORAGE_API_TOKEN: ${{ inputs.kbcSapiToken }}
@@ -42,8 +64,16 @@ runs:
           fi
         done
         
-        # push to Keboola Connection
-        echo -e "KBC CLI PUSH to project ${{ inputs.kbcProjectId }} and branch ${{ inputs.kbcBranchId }} log: \n" >> "$RUNNER_TEMP/log.txt"
-        kbc push -d "$WORKDIR" --force --verbose 2>&1 | tee -a "$RUNNER_TEMP/log.txt"
-        echo -e "---------------------------------------------------------------------------- \n\n" >> "$RUNNER_TEMP/log.txt"
+        # Dry push to Keboola Connection
+        mkdir -p "${{ env.OUT_DIR }}"
+        echo -e "\nCLI Push dry-run output for project: ${{ inputs.kbcProjectId }}\n" > "${{ env.OUT_DIR }}/${{ env.OUT_FILE }}"
+        kbc push --dry-run -d "$WORKDIR" 2>&1 | tee -a "${{ env.OUT_DIR }}/${{ env.OUT_FILE }}"
+        echo -e "------------------- \n\n" >> ${{ env.OUT_DIR }}/${{ env.OUT_FILE }}
       shell: bash
+
+    - name: Save output to artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ env.OUT_DIR }}
+        path: ${{ env.OUT_DIR }}/*
+        retention-days: 1

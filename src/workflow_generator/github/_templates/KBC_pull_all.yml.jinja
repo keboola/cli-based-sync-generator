@@ -1,13 +1,84 @@
-name: Manual KBC Pull ({{ projects }}) from Environment by branch
+name: Manual KBC Pull ({{ projects }})
 on:
   workflow_dispatch:
+    inputs:
+      dest_env:
+        description: 'Destination Environment (OPT)'
+        default: ''
 permissions:
   contents: write
 jobs:
-  Pull_All:
-    # Dynamic generated value
-    environment: {{ environment_spec }}
+
+  # VAULT validation
+  vault_validation_get_structures:
+    if: github.event.inputs.dest_env != ''
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - environment: {{ environment_spec }}
+            origin: "source"
+          - environment: {% raw %}${{ github.event.inputs.dest_env }}{% endraw %}
+            origin: "destination"
+    environment: {% raw %}${{ matrix.environment }}{% endraw %}
+    steps:
+      - uses: actions/checkout@v4
+
+      # Generated steps {% for step in steps %}
+      - name: Pull vault {{ step.with.workdir }}
+        uses: ./.github/actions/kbc_vault_validation/get_vault_keys
+        with:
+          destFile: "{% raw %}${{ matrix.origin }}{% endraw %}/{% raw %}${{ matrix.environment }}{% endraw %}/{{ step.with.workdir }}.json"
+          kbcSapiHost: {% raw %}${{ vars.{% endraw %}{{ step.with.kbcSapiHost }}{% raw %} }}{% endraw %}
+          kbcSapiToken: {% raw %}${{ secrets.{% endraw %}{{ step.with.kbcSapiToken }}{% raw %} }}{% endraw %}
+          kbcBranchId: {% raw %}${{ vars.{% endraw %}{{ step.with.kbcBranchId }}{% raw %} }}{% endraw %}
+      {% endfor %}# End generated steps
+
+  vault_validation_comparison:
+    runs-on: ubuntu-latest
+    needs: vault_validation_get_structures
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compare vault structure
+        uses: ./.github/actions/kbc_vault_validation
+
+  # STORAGE validation
+  storage_validation_get_structures:
+    if: github.event.inputs.dest_env != ''
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - environment: {{ environment_spec }}
+            origin: "source"
+          - environment: {% raw %}${{ github.event.inputs.dest_env }}{% endraw %}
+            origin: "destination"
+    environment: {% raw %}${{ matrix.environment }}{% endraw %}
+    steps:
+      - uses: actions/checkout@v4
+
+      # Generated steps {% for step in steps %}
+      - name: Pull storage {{ step.with.workdir }}
+        uses: ./.github/actions/kbc_storage_validation/get_storage_structure
+        with:
+          destFile: "{% raw %}${{ matrix.origin }}{% endraw %}/{% raw %}${{ matrix.environment }}{% endraw %}/{{ step.with.workdir }}.json"
+          kbcSapiHost: {% raw %}${{ vars.{% endraw %}{{ step.with.kbcSapiHost }}{% raw %} }}{% endraw %}
+          kbcSapiToken: {% raw %}${{ secrets.{% endraw %}{{ step.with.kbcSapiToken }}{% raw %} }}{% endraw %}
+      {% endfor %}# End generated steps
+
+  storage_validation_comparison:
+    runs-on: ubuntu-latest
+    needs: storage_validation_get_structures
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compare storage structure
+        uses: ./.github/actions/kbc_storage_validation
+
+  # CLI push dry-run
+  CLI_push_dry_run:
+    if: github.event.inputs.dest_env != ''
+    runs-on: ubuntu-latest
+    environment: {% raw %}${{ github.event.inputs.dest_env }}{% endraw %}
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/install
@@ -15,24 +86,78 @@ jobs:
           githubToken: {% raw %}${{ secrets.GITHUB_TOKEN }}{% endraw %}
 
       # Generated steps {% for step in steps %}
-      - name: Pull configurations from {{ step.name }}
-        uses: ./.github/actions/kbc_pull
+      - name: Get CLI diff {{ step.with.workdir }}
+        uses: ./.github/actions/kbc_push_dry
         with:
-          workdir: "{{ step.with.workdir }}"
-          kbcStorageApiHost: {% raw %}${{ vars.{% endraw %}{{ step.with.kbcStorageApiHost }}{% raw %} }}{% endraw %}
-          kbcStorageApiToken: {% raw %}${{ secrets.{% endraw %}{{ step.with.kbcStorageApiToken }}{% raw %} }}{% endraw %}
+          workdir: {{ step.with.workdir }}
+          kbcSapiHost: {% raw %}${{ vars.{% endraw %}{{ step.with.kbcSapiHost }}{% raw %} }}{% endraw %}
+          kbcSapiToken: {% raw %}${{ secrets.{% endraw %}{{ step.with.kbcSapiToken }}{% raw %} }}{% endraw %}
           kbcProjectId: {% raw %}${{ vars.{% endraw %}{{ step.with.kbcProjectId }}{% raw %} }}{% endraw %}
           kbcBranchId: {% raw %}${{ vars.{% endraw %}{{ step.with.kbcBranchId }}{% raw %} }}{% endraw %}
       {% endfor %}# End generated steps
 
+      - name: Merge Artifacts
+        uses: actions/upload-artifact/merge@v4
+        with:
+          name: cli_diffs
+          pattern: cli_diff_*
+
+  # Pull all configurations from projects, collection of validation results and push with commit
+  Pull_All:
+    if: always()
+    needs: [ storage_validation_comparison,vault_validation_comparison,CLI_push_dry_run ]
+    # Dynamic generated value
+    environment: {{ environment_spec }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Log
+        run: |
+          currentDate=$(date +%Y-%m-%d:%T%Z)
+
+          echo "Manual KBC pull $currentDate" > "$RUNNER_TEMP/log.txt"
+
+      - uses: actions/checkout@v4
+
+      # Read Vault artifacts to log
+      - name: Read vault_structures_result
+        uses: ./.github/actions/read_artifact
+        with:
+          artifactName: vault_structures_result
+
+      # Read Storage artifacts to log
+      - name: Read vault_structures_result
+        uses: ./.github/actions/read_artifact
+        with:
+          artifactName: storage_structures_result
+
+      # Read CLI diff artifacts to log
+      - name: Read vault_structures_result
+        uses: ./.github/actions/read_artifact
+        with:
+          artifactName: cli_diffs
+
+      - uses: ./.github/actions/install
+        with:
+          githubToken: {% raw %}${{ secrets.GITHUB_TOKEN }}{% endraw %}
+
+     # Generated steps {% for step in steps %}
+      - name: Pull configurations from {{ step.name }}
+        uses: ./.github/actions/kbc_pull
+        with:
+          workdir: "{{ step.with.workdir }}"
+          kbcSapiHost: {% raw %}${{ vars.{% endraw %}{{ step.with.kbcSapiHost }}{% raw %} }}{% endraw %}
+          kbcSapiToken: {% raw %}${{ secrets.{% endraw %}{{ step.with.kbcSapiToken }}{% raw %} }}{% endraw %}
+          kbcProjectId: {% raw %}${{ vars.{% endraw %}{{ step.with.kbcProjectId }}{% raw %} }}{% endraw %}
+          kbcBranchId: {% raw %}${{ vars.{% endraw %}{{ step.with.kbcBranchId }}{% raw %} }}{% endraw %}
+      {% endfor %}# End generated steps
+
+      # Final commit and GIT push
       - name: Commit and push
         run: |
-          apt-get update && apt-get install -y tree
-          tree -a
-          currentDate=`date +%Y-%m-%d:%T%Z`
-          pull_log=`cat "$RUNNER_TEMP/log.txt"`
+          # Commit and push
           git config --global user.name 'Keboola CLI'
           git config --global user.email 'keboola-cli@users.noreply.github.com'
+
           git add -A
-          git commit -a -m "Manual KBC pull $currentDate" -m "$pull_log" || true
+          git commit --allow-empty -a -F "$RUNNER_TEMP/log.txt" || true
           git push --force

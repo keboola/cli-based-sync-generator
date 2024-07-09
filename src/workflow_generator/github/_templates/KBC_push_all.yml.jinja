@@ -1,4 +1,4 @@
-name: Manual KBC Push ({{ projects }}) to Environment by branch
+name: Manual KBC Push ({{ projects }})
 on:
   workflow_dispatch:
 permissions:
@@ -19,8 +19,8 @@ jobs:
         uses: ./.github/actions/kbc_push
         with:
           workdir: "{{ step.with.workdir }}"
-          kbcStorageApiHost: {% raw %}${{ vars.{% endraw %}{{ step.with.kbcStorageApiHost }}{% raw %} }}{% endraw %}
-          kbcStorageApiToken: {% raw %}${{ secrets.{% endraw %}{{ step.with.kbcStorageApiToken }}{% raw %} }}{% endraw %}
+          kbcSapiHost: {% raw %}${{ vars.{% endraw %}{{ step.with.kbcSapiHost }}{% raw %} }}{% endraw %}
+          kbcSapiToken: {% raw %}${{ secrets.{% endraw %}{{ step.with.kbcSapiToken }}{% raw %} }}{% endraw %}
           kbcProjectId: {% raw %}${{ vars.{% endraw %}{{ step.with.kbcProjectId }}{% raw %} }}{% endraw %}
           kbcBranchId: {% raw %}${{ vars.{% endraw %}{{ step.with.kbcBranchId }}{% raw %} }}{% endraw %}
       {% endfor %}# End generated steps
