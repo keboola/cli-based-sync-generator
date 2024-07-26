@@ -1,8 +1,8 @@
+import re
 from pathlib import Path
 
-import streamlit as st
 import pandas as pd
-import re
+import streamlit as st
 
 from src.workflow_generator.workflows import WorkflowGenerator
 
@@ -133,8 +133,6 @@ def add_project():
                     for env_name in st.session_state['environments']['env_name'].unique():
                         env_data = st.session_state['environments'][
                             st.session_state['environments']['env_name'] == env_name]
-                        new_row['stack'] = env_data['stack'].values[0]
-                        new_row['branch'] = env_data['branch'].values[0]
                         new_row[f'{env_name}_link'] = links[env_name]
                         new_row[f'{env_name}_id'] = _parse_project_id(links[env_name])
 
@@ -208,5 +206,6 @@ if st.button('Generate Environment'):
             file_name=zip_file_name,
             mime="application/zip"
         )
-    st.markdown(f"## Setup Instructions ({scm_platform}):")
-    st.markdown(generator.get_manual())
+    st.markdown(f"# Setup Instructions ({scm_platform}):")
+    manual = generator.get_manual()
+    st.markdown(manual, unsafe_allow_html=True)
