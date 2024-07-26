@@ -66,7 +66,7 @@ class GithubGenerator(WorkflowGeneratorBase):
         return Path(self._root_path).joinpath(path).as_posix()
 
     def _get_env_md_list(self):
-        return '\n - ' + '\n- '.join([environment['env_name'] for environment in self._environments])
+        return '\n - ' + '\n- '.join([f"**{environment['env_name']}**" for environment in self._environments])
 
     def _get_env_secrets_table_md(self) -> str:
         col_count = len(self._environments) + 1
@@ -103,11 +103,12 @@ class GithubGenerator(WorkflowGeneratorBase):
         return ''.join(table_elements)
 
     def get_manual(self):
-        manual_template = open(Path(TEMPLATES_DIR + "/github_manual.md"), "r").read()
+        template_path = self._add_root_path(TEMPLATES_DIR)
+        manual_template = open(Path(template_path + "/github_manual.md"), "r").read()
         images = {
-            "git_action_img_path": self._get_image_base64(Path(TEMPLATES_DIR + "/git_action.png")),
-            "git_env_setup_img_path": self._get_image_base64(Path(TEMPLATES_DIR + "/git_env_setup.png")),
-            "branch_protection_img_path": self._get_image_base64(Path(TEMPLATES_DIR + "/branch_protection.png"))
+            "git_action_img_path": self._get_image_base64(Path(template_path + "/git_action.png")),
+            "git_env_setup_img_path": self._get_image_base64(Path(template_path + "/git_env_setup.png")),
+            "branch_protection_img_path": self._get_image_base64(Path(template_path + "/branch_protection.png"))
         }
 
         manual = manual_template.format(env_list=self._get_env_md_list(),
