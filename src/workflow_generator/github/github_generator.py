@@ -31,7 +31,8 @@ class GithubGenerator(WorkflowGeneratorBase):
         self._template_data = {
             "projects": f"{', '.join(self._projects)}",
             "environment_spec": self._generate_environment_spec(),
-            "steps": self._generate_steps()
+            "steps": self._generate_steps(),
+            "environment_names": [environment['env_name'] for environment in self._environments]
         }
         self._templates = [
             WorkflowTemplate(self._add_root_path(TEMPLATES_DIR), template['template_file'],
