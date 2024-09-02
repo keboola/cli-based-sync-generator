@@ -1,3 +1,11 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
 .idea
+.vscode
+.DS_Store
+.env
+
+
 /src/workflow_generator/github/workflows/*.*
 /src/workflow_generator/github/generated_files/
