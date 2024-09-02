@@ -4,7 +4,11 @@ on:
     inputs:
       dest_env:
         description: 'Destination Environment (OPT)'
-        default: ''
+        default: '{{ environment_names[0] }}'
+        type: choice
+        options:
+        {% for option in environment_names %}- '{{ option }}'
+        {% endfor %}- ''
 permissions:
   contents: write
 jobs:
