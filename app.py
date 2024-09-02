@@ -36,11 +36,16 @@ st.divider()
 @st.experimental_dialog('Add a new environment', width='large')
 def add_environment():
     env_name = st.text_input('Environment Name')
-    stack = st.selectbox('Stack', ['connection.keboola.com',
-                                   'connection.us-east4.gcp.keboola.com',
-                                   'connection.eu-central-1.keboola.com',
-                                   'connection.north-europe.azure.keboola.com',
-                                   'connection.europe-west3.gcp.keboola.com]'])
+    custom_stack = st.checkbox('Custom Stack')
+    if not custom_stack:
+        stack = st.selectbox('Stack', ['connection.keboola.com',
+                                       'connection.us-east4.gcp.keboola.com',
+                                       'connection.eu-central-1.keboola.com',
+                                       'connection.north-europe.azure.keboola.com',
+                                       'connection.europe-west3.gcp.keboola.com]'])
+    else:
+        stack = st.text_input('Custom Stack', placeholder='connection.YOUR_NAME.keboola.cloud')
+
     branch = st.text_input('Branch')
     st.caption('Branch name in the SCM repository')
 
