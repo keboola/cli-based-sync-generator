@@ -7,6 +7,7 @@ import streamlit as st
 from src.workflow_generator.workflows import WorkflowGenerator
 
 PROJECT_ID_REGEX = r"https://.*keboola\..*/projects/(\d+)"
+PROJECT_NAME_REGEX = r'^[a-zA-Z_][a-zA-Z0-9_]*$'
 
 # Set the logo adn page title
 LOGO_URL = 'https://assets-global.website-files.com/5e21dc6f4c5acf29c35bb32c/5e21e66410e34945f7f25add_Keboola_logo.svg'
@@ -104,9 +105,13 @@ st.subheader('Project Mapping')
 ''
 
 
-def _parse_project_id(in_str):
+def _parse_project_id(in_str: str):
     match = re.search(PROJECT_ID_REGEX, in_str)
     return match.group(1) if match else ''
+
+
+def validate_project_name(name: str):
+    return re.match(PROJECT_NAME_REGEX, name)
 
 
 # Add and delete projects
@@ -116,8 +121,11 @@ def add_project():
         st.info("Please setup environments first")
         return
 
-    project_name = st.text_input('Project Name')
-    st.caption('Using as folder name in the SCM repository')
+    project_name = st.text_input('Project Name', re)
+    if project_invalid := not validate_project_name(project_name):
+        st.error('Project name should start with a letter and contain only letters, numbers and underscores')
+    st.caption('It does not need to match the actual project name, it will be used as a folder name in the repository '
+               'and a variable name in the workflow')
     links = {}
 
     st.divider()
@@ -128,7 +136,9 @@ def add_project():
         st.caption(f'Link to the project should be in the format: https://connection.keboola.com/admin/projects/*')
 
     if st.button('Add'):
-        if project_name:
+        if project_invalid:
+            st.warning('Please fill in a valid project name')
+        elif project_name:
             # check if links are filled and valid with stack
             if all(str(st.session_state['environments']['stack'][
                            st.session_state['environments']['env_name'] == env].values[0])
