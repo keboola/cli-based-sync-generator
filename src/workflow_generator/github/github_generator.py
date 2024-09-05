@@ -80,7 +80,7 @@ class GithubGenerator(WorkflowGeneratorBase):
             cell_data = [f'*Storage token for project `{project}` in `{environment["env_name"]}`*' for environment in
                          self._environments]
             table_elements.append(
-                f"| {project} | {' | '.join(cell_data)} |\n")
+                f"| KBC_SAPI_TOKEN_{project} | {' | '.join(cell_data)} |\n")
 
         return ''.join(table_elements)
 
@@ -93,13 +93,17 @@ class GithubGenerator(WorkflowGeneratorBase):
 
         table_elements.append(
             '| **Variable Name** | ' + ' | '.join(['**Value**' for _ in range(col_count - 1)]) + ' |\n')
-        table_elements.append(f"| SAPI_HOST | {' | '.join(cell_data)} |\n")
+        table_elements.append(f"| KBC_SAPI_HOST | {' | '.join(cell_data)} |\n")
 
         for project in self._project_mapping:
             cell_data = [f'`{self._project_mapping[project][environment["env_name"]]["id"]}`' for environment in
                          self._environments]
             table_elements.append(
-                f"| PROJECT_ID_{project} | {' | '.join(cell_data)} |\n")
+                f"| KBC_PROJECT_ID_{project} | {' | '.join(cell_data)} |\n")
+            branch_ids = [f'*Main Branch ID for project `{project}` in `{environment["env_name"]}`*' for environment in
+                          self._environments]
+            table_elements.append(
+                f"| KBC_BRANCH_ID_{project} | {' | '.join(branch_ids)} |\n")
 
         return ''.join(table_elements)
 
