@@ -3,6 +3,7 @@ import json
 import logging
 import os
 import zipfile
+from tabulate import tabulate
 from pathlib import Path
 
 from storage_diff import StorageDiff as Diff
@@ -52,9 +53,10 @@ class StorageDiff:
         if self.source_structure.get_projects() != self.destination_structure.get_projects():
             raise ValueError("Projects in source and destination structures do not match!")
 
-        text_output = [f"Storage Comparison Result ('{self.source_structure.environment}' "
+        text_output = [f"Storage Comparison ('{self.source_structure.environment}' "
                        f"vs '{self.destination_structure.environment}')"]
         text_output.append(self._generate_line(text_output, '='))
+        text_output.append("")
         for source_project in self.source_structure.projects:
             destination_project = self.destination_structure.get_project(source_project.project)
 
@@ -64,11 +66,17 @@ class StorageDiff:
 
             diff_file = Diff(source_project.path, destination_project.path, diff_file_path).compare()
 
-            text_output.append(f"\nProject '{source_project.project}' vs Project '{destination_project.project}'")
-            text_output.append(self._generate_line(text_output))
-            text_output.extend(self._create_text(diff_file))
+            text_output.append(f"Source project '{source_project.project}' "
+                               f"({self.source_structure.environment}) "
+                               f"vs Destination project '{destination_project.project} "
+                               f"({self.destination_structure.environment})'\r")
 
-        text_output.append(f"\n{'-' * 50}\n\n")
+            text_output.append(self._generate_line(text_output))
+            text_output.append('')
+            text_output.append(self._create_text(diff_file))
+            text_output.append('\n')
+
+        # text_output.append(f"{'-' * 50}")
         self._write_report(text_output)
 
     @staticmethod
@@ -76,7 +84,7 @@ class StorageDiff:
         last_item = text_list[-1]
         last_item_length = len(last_item)
 
-        line = f"{character * last_item_length}\n"
+        line = f"{character * last_item_length}"
 
         return line
 
@@ -87,23 +95,30 @@ class StorageDiff:
             diff = json.load(f)
 
         if not diff:
-            return ["Storage structure is the same - No changes detected\n"]
+            return "✅ Storage structure is the same - No changes detected\n"
 
-        text_lines = []
+        table_data = [['Object ID', 'Operation', 'Values']]
         for event in diff:
             if event['event'] == 'ADD_BUCKET':
-                text_lines.append(f"- Bucket added:\n{event['bucket']['id']}\n")
-            elif event['event'] == 'DROP_BUCKET':
-                text_lines.append(f"- Bucket removed:\n{event['bucket']['id']}\n")
-            elif event['event'] == 'MODIFY_BUCKET':
-                text_lines.append(f"- Bucket modified:\n{event['bucket']['id']}\n")
-            elif event['event'] == 'ADD_TABLE':
-                text_lines.append(f"- Table added:\n{event['table']['id']}\n")
-            elif event['event'] == 'DROP_TABLE':
-                text_lines.append(f"- Table removed:\n{event['table']['id']}\n")
-            # TODO: Add more event types here...
+                table_data.append([f"[{event['bucket']['id']}]({event['link']})", 'Bucket added', '-'])
 
-        return text_lines
+            elif event['event'] == 'DROP_BUCKET':
+                table_data.append([f"[{event['bucket']['id']}]({event['link']})", 'Bucket removed', '-'])
+
+            elif event['event'] == 'MODIFY_BUCKET':
+                table_data.append([f"[{event['bucket']['id']}]({event['link']})", 'Bucket modified', '-'])
+
+            elif event['event'] == 'SHARE_BUCKET':
+                table_data.append([f"[{event['bucket']['id']}]({event['link']})", 'Bucket shared', '-'])
+
+            elif event['event'] == 'ADD_TABLE':
+                table_data.append([f"[{event['table']['id']}]({event['link']})", 'Table added', '-'])
+
+            elif event['event'] == 'DROP_TABLE':
+                table_data.append([f"[{event['table']['id']}]({event['link']})", 'Table removed', '-'])
+            else:
+                table_data.append([f"[{event['link']}]({event['link']})", event['event'], '-'])
+        return tabulate(table_data, headers="firstrow", tablefmt="github")
 
     @staticmethod
     def _write_report(text_output):

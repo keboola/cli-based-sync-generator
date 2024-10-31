@@ -4,10 +4,13 @@ inputs:
   artifactName:
     description: Artifact name to check
     required: true
+  logHeader:
+    description: Header for the log
+    required: false
 runs:
   using: "composite"
   steps:
-    - name: Check if artifact storage_structures_result exists
+    - name: Check if artifact exists
       id: check_artifact_exists
       uses: actions/github-script@v7
       with:
@@ -39,10 +42,10 @@ runs:
       if: steps.check_artifact_exists.outputs.artifact_exists == 'true'
       run: |
         if [ -d ${{ inputs.artifactName }} ]; then
+            echo -e "${{ inputs.logHeader }}" >> "$RUNNER_TEMP/log.txt"
             for file in ${{ inputs.artifactName }}/*; do
               if [ -f "$file" ]; then
                 cat "$file" >> "$RUNNER_TEMP/log.txt"
-                echo "" >> "$RUNNER_TEMP/log.txt"
               fi
             done
             rm -rf ${{ inputs.artifactName }}

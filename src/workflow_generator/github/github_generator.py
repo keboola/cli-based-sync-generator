@@ -6,6 +6,7 @@ from pathlib import Path
 from ..base.workflow_generator import WorkflowGeneratorBase, WorkflowTemplate
 
 TEMPLATES_DIR = "src/workflow_generator/github/_templates"
+MANUAL_FILES_DIR = "src/workflow_generator/github/_manual_files"
 TEMPLATE_OUTPUT_DIR = "src/workflow_generator/github/workflows"
 ACTIONS_DIR = "src/workflow_generator/github/actions"
 GITIGNORE_FILE = "src/workflow_generator/github/_additional_files/.gitignore"
@@ -104,12 +105,12 @@ class GithubGenerator(WorkflowGeneratorBase):
         return ''.join(table_elements)
 
     def get_manual(self):
-        template_path = self._add_root_path(TEMPLATES_DIR)
-        manual_template = open(Path(template_path + "/github_manual.md"), "r").read()
+        manual_files_path = self._add_root_path(MANUAL_FILES_DIR)
+        manual_template = open(Path(manual_files_path + "/github_manual.md"), "r").read()
         images = {
-            "git_action_img_path": self._get_image_base64(Path(template_path + "/git_action.png")),
-            "git_env_setup_img_path": self._get_image_base64(Path(template_path + "/git_env_setup.png")),
-            "branch_protection_img_path": self._get_image_base64(Path(template_path + "/branch_protection.png"))
+            "git_action_img_path": self._get_image_base64(Path(manual_files_path + "/git_action.png")),
+            "git_env_setup_img_path": self._get_image_base64(Path(manual_files_path + "/git_env_setup.png")),
+            "branch_protection_img_path": self._get_image_base64(Path(manual_files_path + "/branch_protection.png"))
         }
 
         manual = manual_template.format(env_list=self._get_env_md_list(),

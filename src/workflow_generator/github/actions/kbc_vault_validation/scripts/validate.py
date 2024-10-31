@@ -3,6 +3,7 @@ import json
 import logging
 import os
 import zipfile
+from tabulate import tabulate
 from pathlib import Path
 
 KEY_ORIGIN_SOURCE = "source"
@@ -53,18 +54,24 @@ class VaultDiff:
         text_output = [f"Vault Comparison Result ('{self.source_structure.environment}' "
                        f"vs '{self.destination_structure.environment}')"]
         text_output.append(self._generate_line(text_output, '='))
+        text_output.append('')
         for source_project in self.source_structure.projects:
             destination_project = self.destination_structure.get_project(source_project.project)
 
-            logging.info(f"Comparing source project {source_project.project} "
-                         f"vs destination {destination_project.project}")
+            logging.info(f"Source project {source_project.project} "
+                         f"vs Destination {destination_project.project}")
 
-            text_output.append(f"\nSource project '{source_project.project}' "
-                               f"vs Destination project '{destination_project.project}'")
+            text_output.append(f"Source project '{source_project.project}' "
+                               f"({self.source_structure.environment}) "
+                               f"vs Destination project '{destination_project.project} "
+                               f"({self.destination_structure.environment})'\r")
+
             text_output.append(self._generate_line(text_output))
-            text_output.extend(self._compare_structure(source_project.path, destination_project.path))
+            text_output.append('')
+            text_output.append(self._compare_structure(source_project, destination_project))
+            text_output.append('\n')
 
-        text_output.append(f"\n{'-' * 50}\n\n")
+        #text_output.append(f"{'-' * 50}")
         self._write_report(text_output)
 
     @staticmethod
@@ -72,31 +79,28 @@ class VaultDiff:
         last_item = text_list[-1]
         last_item_length = len(last_item)
 
-        line = f"{character * last_item_length}\n"
+        line = f"{character * last_item_length}"
 
         return line
 
-    @staticmethod
-    def _compare_structure(source_project_path, destination_project_path):
-        source = VaultDiff._read_file(source_project_path)
-        destination = VaultDiff._read_file(destination_project_path)
+    def _compare_structure(self, source_project, destination_project):
+        source = VaultDiff._read_file(source_project.path)
+        destination = VaultDiff._read_file(destination_project.path)
 
+        items = list(set(source + destination))
         missing_in_source = [item for item in destination if item not in source]
         missing_in_destination = [item for item in source if item not in destination]
 
-        text_lines = []
-        if len(missing_in_source) > 0:
-            missing_in_source_text = "\n".join(missing_in_source)
-            text_lines.append(f"- In source project is missing following keys:\n{missing_in_source_text}\n")
+        if len(missing_in_source) == 0 and len(missing_in_destination) == 0:
+            return f"✅ Vault structure is the same - No changes detected\n"
 
-        if len(missing_in_destination) > 0:
-            missing_in_destination_text = "\n".join(missing_in_destination)
-            text_lines.append(f"- In destination project is missing following keys:\n{missing_in_destination_text}\n")
+        src_env = self.source_structure.environment
+        dest_env = self.destination_structure.environment
+        table_data = [['Variable', src_env, dest_env]]
+        for item in items:
+            table_data.append([item, '✅' if item in source else '⛔', '✅' if item in destination else '⛔'])
 
-        if not text_lines:
-            return ["Vault structure is the same - No changes detected\n"]
-
-        return text_lines
+        return tabulate(table_data, headers="firstrow", tablefmt="github")
 
     @staticmethod
     def _write_report(text_output):

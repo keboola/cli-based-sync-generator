@@ -39,7 +39,7 @@ def check_json_keys_and_values(json_file):
 def write_encrypted(secure_encrypted):
     for key in secure_encrypted:
         print(f"{key['file']} -> {key['key']}")
-    print("The configurations above contain a secure value not in the vault!")
+    print("⛔ The configurations above contain a encrypted value not in the vault!")
     exit(-1)
 
 
@@ -52,7 +52,7 @@ def main(target_dir):
     if secure_keys:
         write_encrypted([key for key in secure_keys if not key['is_vault_value']])
     else:
-        print("No secure values found in the configurations - validation is ok")
+        print("✅ No encrypted values found in the configurations - validation is ok")
 
 
 if __name__ == '__main__':

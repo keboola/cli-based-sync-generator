@@ -16,6 +16,9 @@ inputs:
   kbcBranchId:
     description: Keboola Connection Branch ID
     required: true
+  forcePush:
+    description: Enable force push
+    required: false
 runs:
   using: "composite"
   steps:
@@ -42,8 +45,16 @@ runs:
           fi
         done
         
+        # if forcePush is true, add --force flag
+        if [ "${{ inputs.forcePush }}" == "true" ]; then
+          echo "Force push enabled"
+          FORCE="--force"
+        else
+          FORCE=""
+        fi
+        
         # push to Keboola Connection
         echo -e "KBC CLI PUSH to project ${{ inputs.kbcProjectId }} and branch ${{ inputs.kbcBranchId }} log: \n" >> "$RUNNER_TEMP/log.txt"
-        kbc push -d "$WORKDIR" --force --verbose 2>&1 | tee -a "$RUNNER_TEMP/log.txt"
+        kbc push -d "$WORKDIR" --verbose "$FORCE" 2>&1 | tee -a "$RUNNER_TEMP/log.txt"
         echo -e "---------------------------------------------------------------------------- \n\n" >> "$RUNNER_TEMP/log.txt"
       shell: bash
