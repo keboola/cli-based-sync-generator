@@ -21,6 +21,8 @@ runs:
   steps:
     - name: Checkout code
       uses: actions/checkout@v4
+      with:
+        ref: ${{ github.ref }}
 
     - name: get random number
       id: random_number
@@ -64,11 +66,19 @@ runs:
           fi
         done
         
+        
         # Dry push to Keboola Connection
         mkdir -p "${{ env.OUT_DIR }}"
-        echo -e "\nCLI Push dry-run output for project: ${{ inputs.kbcProjectId }}\n" > "${{ env.OUT_DIR }}/${{ env.OUT_FILE }}"
-        kbc push --dry-run -d "$WORKDIR" 2>&1 | tee -a "${{ env.OUT_DIR }}/${{ env.OUT_FILE }}"
-        echo -e "------------------- \n\n" >> ${{ env.OUT_DIR }}/${{ env.OUT_FILE }}
+        echo -e "CLI Push dry-run output for project ${{ inputs.kbcProjectId }} log:" > "${{ env.OUT_DIR }}/${{ env.OUT_FILE }}"
+        echo -e "---------------------------------------------------------------------------- " >> "${{ env.OUT_DIR }}/${{ env.OUT_FILE }}"
+        echo -e "\`\`\`" >> "${{ env.OUT_DIR }}/${{ env.OUT_FILE }}"
+        if [ ! -d "$WORKDIR" ]; then
+            echo -e "Working directory is empty - initial pull\n" >> ${{ env.OUT_DIR }}/${{ env.OUT_FILE }}
+        else
+           kbc push --dry-run -d "$WORKDIR" 2>&1 | tee -a "${{ env.OUT_DIR }}/${{ env.OUT_FILE }}"
+        fi
+        echo -e "\`\`\`" >> "${{ env.OUT_DIR }}/${{ env.OUT_FILE }}"
+        echo -e "\n---------------------------------------------------------------------------- \n" >> ${{ env.OUT_DIR }}/${{ env.OUT_FILE }}
       shell: bash
 
     - name: Save output to artifact

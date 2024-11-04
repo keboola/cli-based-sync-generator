@@ -21,10 +21,16 @@ runs:
         name: storage_structures
         path: ./storage_structures
 
+    - name: Setup python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.9'
+
     - name: Compare storage structure
       shell: bash
       run: |
-        python3 .github/actions/kbc_storage_validation/scripts/validate.py \
+        python -m pip install --upgrade pip tabulate
+        python .github/actions/kbc_storage_validation/scripts/validate.py \
           --workdir="./storage_structures" 
 
     - name: Save structure to artifact

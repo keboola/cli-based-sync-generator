@@ -4,7 +4,6 @@ on:
     inputs:
       dest_env:
         description: 'Destination Environment (OPT)'
-        default: '{{ environment_names[0] }}'
         type: choice
         options:
         {% for option in environment_names %}- '{{ option }}'
@@ -27,6 +26,8 @@ jobs:
     environment: {% raw %}${{ matrix.environment }}{% endraw %}
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: {% raw %}${{ github.ref }}{% endraw %}
 
       # Generated steps {% for step in steps %}
       - name: Pull vault {{ step.with.workdir }}
@@ -43,6 +44,8 @@ jobs:
     needs: vault_validation_get_structures
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: {% raw %}${{ github.ref }}{% endraw %}
       - name: Compare vault structure
         uses: ./.github/actions/kbc_vault_validation
 
@@ -60,6 +63,8 @@ jobs:
     environment: {% raw %}${{ matrix.environment }}{% endraw %}
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: {% raw %}${{ github.ref }}{% endraw %}
 
       # Generated steps {% for step in steps %}
       - name: Pull storage {{ step.with.workdir }}
@@ -68,6 +73,7 @@ jobs:
           destFile: "{% raw %}${{ matrix.origin }}{% endraw %}/{% raw %}${{ matrix.environment }}{% endraw %}/{{ step.with.workdir }}.json"
           kbcSapiHost: {% raw %}${{ vars.{% endraw %}{{ step.with.kbcSapiHost }}{% raw %} }}{% endraw %}
           kbcSapiToken: {% raw %}${{ secrets.{% endraw %}{{ step.with.kbcSapiToken }}{% raw %} }}{% endraw %}
+          kbcProjectId: {% raw %}${{ vars.{% endraw %}{{ step.with.kbcProjectId }}{% raw %} }}{% endraw %}
       {% endfor %}# End generated steps
 
   storage_validation_comparison:
@@ -75,16 +81,76 @@ jobs:
     needs: storage_validation_get_structures
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: {% raw %}${{ github.ref }}{% endraw %}
       - name: Compare storage structure
         uses: ./.github/actions/kbc_storage_validation
+
+  # Pull all configurations from projects, collection of validation results and push with commit
+  Pull_All:
+    if: always()
+    needs: [ storage_validation_comparison,vault_validation_comparison ]
+    # Dynamic generated value
+    environment: {{ environment_spec }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: {% raw %}${{ github.ref }}{% endraw %}
+
+      - uses: ./.github/actions/install
+        with:
+          githubToken: {% raw %}${{ secrets.GITHUB_TOKEN }}{% endraw %}
+
+      - name: Log_pull_header
+        run: |
+          echo -e "Pull configurations from projects" >> "./log.txt"
+          echo -e "=================================\n" >> "./log.txt"
+
+     # Generated steps {% for step in steps %}
+      - name: Pull configurations from {{ step.name }}
+        uses: ./.github/actions/kbc_pull
+        with:
+          workdir: "{{ step.with.workdir }}"
+          kbcSapiHost: {% raw %}${{ vars.{% endraw %}{{ step.with.kbcSapiHost }}{% raw %} }}{% endraw %}
+          kbcSapiToken: {% raw %}${{ secrets.{% endraw %}{{ step.with.kbcSapiToken }}{% raw %} }}{% endraw %}
+          kbcProjectId: {% raw %}${{ vars.{% endraw %}{{ step.with.kbcProjectId }}{% raw %} }}{% endraw %}
+          kbcBranchId: {% raw %}${{ vars.{% endraw %}{{ step.with.kbcBranchId }}{% raw %} }}{% endraw %}
+      {% endfor %}# End generated steps
+
+      - name: Save log to artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: log
+          path: ./log.txt
+          retention-days: 5
+
+      # Final commit and GIT push
+      - name: Commit and push
+        run: |
+          # Commit and push
+          cat ./log.txt >> "$RUNNER_TEMP/log.txt"
+          rm ./log.txt
+
+          git config --global user.name 'Keboola CLI'
+          git config --global user.email 'keboola-cli@users.noreply.github.com'
+
+          git add -A
+          git commit --allow-empty -a -F "$RUNNER_TEMP/log.txt" || true
+          git push --force
+
+
 
   # CLI push dry-run
   CLI_push_dry_run:
     if: github.event.inputs.dest_env != ''
+    needs: [ Pull_All ]
     runs-on: ubuntu-latest
     environment: {% raw %}${{ github.event.inputs.dest_env }}{% endraw %}
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: {% raw %}${{ github.ref }}{% endraw %}
       - uses: ./.github/actions/install
         with:
           githubToken: {% raw %}${{ secrets.GITHUB_TOKEN }}{% endraw %}
@@ -100,27 +166,20 @@ jobs:
           kbcBranchId: {% raw %}${{ vars.{% endraw %}{{ step.with.kbcBranchId }}{% raw %} }}{% endraw %}
       {% endfor %}# End generated steps
 
+      # write diff to log
       - name: Merge Artifacts
         uses: actions/upload-artifact/merge@v4
         with:
           name: cli_diffs
           pattern: cli_diff_*
 
-  # Pull all configurations from projects, collection of validation results and push with commit
-  Pull_All:
-    if: always()
-    needs: [ storage_validation_comparison,vault_validation_comparison,CLI_push_dry_run ]
-    # Dynamic generated value
-    environment: {{ environment_spec }}
-    runs-on: ubuntu-latest
-    steps:
+      # construct commit message
       - name: Log
         run: |
           currentDate=$(date +%Y-%m-%d:%T%Z)
 
           echo "Manual KBC pull $currentDate" > "$RUNNER_TEMP/log.txt"
-
-      - uses: actions/checkout@v4
+          echo -e "Validation time: $currentDate\n" >> "$RUNNER_TEMP/log.txt"
 
       # Read Vault artifacts to log
       - name: Read vault_structures_result
@@ -129,31 +188,23 @@ jobs:
           artifactName: vault_structures_result
 
       # Read Storage artifacts to log
-      - name: Read vault_structures_result
+      - name: Read storage_structures_result
         uses: ./.github/actions/read_artifact
         with:
           artifactName: storage_structures_result
 
       # Read CLI diff artifacts to log
-      - name: Read vault_structures_result
+      - name: Read storage_structures_result
         uses: ./.github/actions/read_artifact
         with:
           artifactName: cli_diffs
+          logHeader: "CLI Push dry-runs\n=================\n"
 
-      - uses: ./.github/actions/install
+      # Read log
+      - name: Read storage_structures_result
+        uses: ./.github/actions/read_artifact
         with:
-          githubToken: {% raw %}${{ secrets.GITHUB_TOKEN }}{% endraw %}
-
-     # Generated steps {% for step in steps %}
-      - name: Pull configurations from {{ step.name }}
-        uses: ./.github/actions/kbc_pull
-        with:
-          workdir: "{{ step.with.workdir }}"
-          kbcSapiHost: {% raw %}${{ vars.{% endraw %}{{ step.with.kbcSapiHost }}{% raw %} }}{% endraw %}
-          kbcSapiToken: {% raw %}${{ secrets.{% endraw %}{{ step.with.kbcSapiToken }}{% raw %} }}{% endraw %}
-          kbcProjectId: {% raw %}${{ vars.{% endraw %}{{ step.with.kbcProjectId }}{% raw %} }}{% endraw %}
-          kbcBranchId: {% raw %}${{ vars.{% endraw %}{{ step.with.kbcBranchId }}{% raw %} }}{% endraw %}
-      {% endfor %}# End generated steps
+          artifactName: log
 
       # Final commit and GIT push
       - name: Commit and push
@@ -162,6 +213,5 @@ jobs:
           git config --global user.name 'Keboola CLI'
           git config --global user.email 'keboola-cli@users.noreply.github.com'
 
-          git add -A
           git commit --allow-empty -a -F "$RUNNER_TEMP/log.txt" || true
           git push --force

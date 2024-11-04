@@ -16,8 +16,8 @@ runs:
       uses: robinraju/release-downloader@v1.10
       with:
         repository: "keboola/keboola-as-code"
-        #latest: true
-        tag: "v2.25.0"
+        latest: true
+        #tag: "v2.25.0"
         fileName: "*_linux_amd64.zip"
         token: ${{ inputs.githubToken }}
         out-file-path: "${{ runner.temp }}/kbc"
