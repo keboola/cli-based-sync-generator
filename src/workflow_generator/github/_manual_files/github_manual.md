@@ -61,6 +61,5 @@ Set the following variables in your repository environments:
     <img src="data:image/png;base64,{git_action_img_path}" alt="action" width="450">
 </p>
 
-3. Rebase new branches onto main.
-   1. This step assumes you are creating branches off the existing production projects. If you are not, you can skip this step and perform `KBC Pull` for each environment.
-4. For each branch (except production) run **Manual KBC Push (L0, L1)**
+3. Create other branches off the main branch
+4. For each branch (except production) run **Manual KBC Push**
