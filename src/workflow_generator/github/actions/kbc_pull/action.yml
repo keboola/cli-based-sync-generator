@@ -44,29 +44,29 @@ runs:
         done
 
          # Init data from Keboola connection project
-        echo -e "KBC CLI PULL from project ${{ inputs.kbcProjectId }} and branch ${{ inputs.kbcBranchId }} log:" >> "./log.txt"
-        echo -e "---------------------------------------------------------------------------- " >> "./log.txt"
-        echo -e "\`\`\`" >> "./log.txt"
+        echo -e "KBC CLI PULL from project ${{ inputs.kbcProjectId }} and branch ${{ inputs.kbcBranchId }} log:" >> "$RUNNER_TEMP/log.txt"
+        echo -e "---------------------------------------------------------------------------- " >> "$RUNNER_TEMP/log.txt"
+        echo -e "\`\`\`" >> "$RUNNER_TEMP/log.txt"
         
         if [ -f "$WORKDIR/.keboola/manifest.json" ]; then
           echo "Manifest file exists, pulling"
-          kbc persist -d "$WORKDIR" --verbose 2>&1 | tee -a "./log.txt"
-          kbc pull -d "$WORKDIR" --force --verbose 2>&1 | tee -a "./log.txt"
+          kbc persist -d "$WORKDIR" --verbose 2>&1 | tee -a "$RUNNER_TEMP/log.txt"
+          kbc pull -d "$WORKDIR" --force --verbose 2>&1 | tee -a "$RUNNER_TEMP/log.txt"
         else
           echo "Manifest file not exists, initialization"
           # if not exists $WORKDIR create it
           if [ ! -d "$WORKDIR" ]; then
             mkdir -p "$WORKDIR"
           fi
-          kbc init -d "$WORKDIR" --allow-target-env --ci=false --verbose 2>&1 | tee -a "./log.txt"
+          kbc init -d "$WORKDIR" --allow-target-env --ci=false --verbose 2>&1 | tee -a "$RUNNER_TEMP/log.txt"
         fi
 
-        echo -e "\`\`\`" >> "./log.txt"
-        echo -e "\n---------------------------------------------------------------------------- \n" >> "./log.txt"
+        echo -e "\`\`\`" >> "$RUNNER_TEMP/log.txt"
+        echo -e "\n---------------------------------------------------------------------------- \n" >> "$RUNNER_TEMP/log.txt"
         
-        echo -e "Secrets validation for project ${{ inputs.kbcProjectId }} and branch ${{ inputs.kbcBranchId }} log:" >> "./log.txt"
-        echo -e "---------------------------------------------------------------------------- \n" >> "./log.txt"
-        python3 .github/actions/kbc_pull/secret_validations/validation.py target_dir="$WORKDIR" 2>&1 | tee -a "./log.txt" 
-        echo -e "\n---------------------------------------------------------------------------- \n" >> "./log.txt"
+        echo -e "Secrets validation for project ${{ inputs.kbcProjectId }} and branch ${{ inputs.kbcBranchId }} log:" >> "$RUNNER_TEMP/log.txt"
+        echo -e "---------------------------------------------------------------------------- \n" >> "$RUNNER_TEMP/log.txt"
+        python3 .github/actions/kbc_pull/secret_validations/validation.py target_dir="$WORKDIR" 2>&1 | tee -a "$RUNNER_TEMP/log.txt" 
+        echo -e "\n---------------------------------------------------------------------------- \n" >> "$RUNNER_TEMP/log.txt"
 
       shell: bash

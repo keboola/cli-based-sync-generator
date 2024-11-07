@@ -104,8 +104,8 @@ jobs:
 
       - name: Log_pull_header
         run: |
-          echo -e "Pull configurations from projects" >> "./log.txt"
-          echo -e "=================================\n" >> "./log.txt"
+          echo -e "Pull configurations from projects" >> "$RUNNER_TEMP/log.txt"
+          echo -e "=================================\n" >> "$RUNNER_TEMP/log.txt"
 
      # Generated steps {% for step in steps %}
       - name: Pull configurations from {{ step.name }}
@@ -121,24 +121,20 @@ jobs:
       - name: Save log to artifact
         uses: actions/upload-artifact@v4
         with:
-          name: log
-          path: ./log.txt
-          retention-days: 5
+          name: pull_log
+          path: {% raw %}${{{% endraw %} runner.temp {% raw %}}}{% endraw %}/log.txt
+          retention-days: 1
 
       # Final commit and GIT push
       - name: Commit and push
         run: |
           # Commit and push
-          cat ./log.txt >> "$RUNNER_TEMP/log.txt"
-          rm ./log.txt
-
           git config --global user.name 'Keboola CLI'
           git config --global user.email 'keboola-cli@users.noreply.github.com'
 
           git add -A
           git commit --allow-empty -a -F "$RUNNER_TEMP/log.txt" || true
           git push --force
-
 
 
   # CLI push dry-run
@@ -204,7 +200,7 @@ jobs:
       - name: Read storage_structures_result
         uses: ./.github/actions/read_artifact
         with:
-          artifactName: log
+          artifactName: pull_log
 
       # Final commit and GIT push
       - name: Commit and push
@@ -215,3 +211,10 @@ jobs:
 
           git commit --allow-empty -a -F "$RUNNER_TEMP/log.txt" || true
           git push --force
+
+      - name: Save log to artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: log
+          path: {% raw %}${{{% endraw %} runner.temp {% raw %}}}{% endraw %}/log.txt
+          retention-days: 5
