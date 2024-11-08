@@ -9,6 +9,7 @@ on:
         {% for option in environment_names %}- '{{ option }}'
         {% endfor %}- ''
 permissions:
+  actions: read
   contents: write
 jobs:
 
