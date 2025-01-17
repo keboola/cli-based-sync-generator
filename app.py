@@ -1,216 +1,191 @@
-import re
 from pathlib import Path
-
-import pandas as pd
 import streamlit as st
+import pandas as pd
 
+from src.constants import LOGO_HTML, set_page_config
+from src.utils.session_state import init_session_state
+from src.components.environment import (
+    add_environment_dialog,
+    edit_environment_dialog,
+    delete_environment_dialog
+)
+from src.components.project import (
+    add_project_dialog,
+    edit_project_dialog,
+    delete_project_dialog
+)
+from src.components.stack import stack_dialog
 from src.workflow_generator.workflows import WorkflowGenerator
 
-PROJECT_ID_REGEX = r"https://.*keboola\..*/projects/(\d+)"
 
-# Set the logo adn page title
-LOGO_URL = 'https://assets-global.website-files.com/5e21dc6f4c5acf29c35bb32c/5e21e66410e34945f7f25add_Keboola_logo.svg'
-LOGO_HTML = f'''
-<div style="display: flex; align-items: center; justify-content: left; font-size: 35px; font-weight: 600;">
-    <img src="{LOGO_URL}" style="height: 40px;">
-    <span style="margin: 0 20px;">Project Lifecycle Manager</span>
-</div>
-'''
-st.markdown(LOGO_HTML, unsafe_allow_html=True)
+def main():
+    # Set page configuration
+    set_page_config()
 
-# Initialize the session state
-if 'environments' not in st.session_state:
-    st.session_state['environments'] = pd.DataFrame(columns=['env_name'])
-if 'project_mapping' not in st.session_state:
-    st.session_state['project_mapping'] = pd.DataFrame(columns=['stack', 'project_name'])
+    # Set the logo and page title
+    st.markdown(LOGO_HTML, unsafe_allow_html=True)
 
-# Setup Environments
-st.markdown('---')
-st.subheader('Setup Environments')
-''
+    # Initialize session state
+    init_session_state()
 
-st.divider()
+    # Setup VCS
+    st.markdown('---')
+    st.subheader('Pipeline Actions (Version Control Setup)')
+    scm_platform = st.selectbox('VCS Platform',
+                                ['GitHub'],
+                                key='scm_platform',
+                                help="Choose your version control system where you want to set up the CI/CD pipeline")
 
+    # Setup Environments
+    st.markdown('---')
+    st.subheader('Setup VCS Environments', help="Add, edit or delete environments to be used in the CI/CD pipeline")
 
-# Add and delete environments
-@st.experimental_dialog('Add a new environment', width='large')
-def add_environment():
-    env_name = st.text_input('Environment Name')
-    custom_stack = st.checkbox('Custom Stack')
-    if not custom_stack:
-        stack = st.selectbox('Stack', ['connection.keboola.com',
-                                       'connection.us-east4.gcp.keboola.com',
-                                       'connection.eu-central-1.keboola.com',
-                                       'connection.north-europe.azure.keboola.com',
-                                       'connection.europe-west3.gcp.keboola.com]'])
-    else:
-        stack = st.text_input('Custom Stack', placeholder='connection.YOUR_NAME.keboola.cloud')
+    # Environment controls
+    col1, col2, col3 = st.columns(3)
+    if col1.button('➕ Add a new environment', use_container_width=True):
+        add_environment_dialog()
+    if col2.button('✎ Edit an environment', use_container_width=True):
+        edit_environment_dialog()
+    if col3.button('➖ Delete an environment', use_container_width=True):
+        delete_environment_dialog()
 
-    branch = st.text_input('Branch')
-    st.caption('Branch name in the SCM repository')
+    # Display environments
+    st.dataframe(
+        st.session_state['environments'],
+        column_config={
+            'env_name': 'Environment Name',
+            'branch': 'Branch'
+        },
+        use_container_width=True,
+        hide_index=True
+    )
 
-    if st.button('Add'):
-        if env_name and stack and branch:
-            if env_name not in st.session_state['environments']['env_name'].values:
-                new_row = pd.DataFrame({"env_name": [env_name], "stack": [stack], "branch": [branch]})
-                st.session_state['environments'] = pd.concat([st.session_state['environments'], new_row],
-                                                             ignore_index=True)
-                st.session_state['project_mapping'][f'{env_name}_id'] = ''
-                st.session_state['project_mapping'][f'{env_name}_link'] = ''
-                st.rerun()
-            else:
-                st.warning('Environment already exists')
-        else:
-            st.warning('Please fill all the fields')
-
-
-@st.experimental_dialog('Delete an environment', width='large')
-def delete_environment():
-    name_to_delete = st.selectbox('Environment Name', st.session_state['environments']['env_name'].unique())
-
-    if st.button('Delete'):
-        if name_to_delete in st.session_state['environments']['env_name'].values:
-            st.session_state['environments'] = st.session_state['environments'][
-                st.session_state['environments']['env_name'] != name_to_delete]
-            st.session_state['project_mapping'].drop(columns=[f'{name_to_delete}_id', f'{name_to_delete}_link'],
-                                                     inplace=True, errors='ignore')
-            st.rerun()
-        else:
-            st.warning('Environment not found')
-
-
-col1, col2 = st.columns(2)
-if col1.button('➕ Add a new environment', use_container_width=True):
-    add_environment()
-
-if col2.button('➖ Delete an environment', use_container_width=True):
-    delete_environment()
-
-# Display the environments
-st.dataframe(
-    st.session_state['environments'],
-    column_config={
-        'env_name': 'Environment Name',
-        'stack': 'Stack',
-        'branch': 'Branch'
-    },
-    use_container_width=True,
-    hide_index=True
-)
-
-# Project Mapping
-st.markdown('''---''')
-st.subheader('Project Mapping')
-''
-
-
-def _parse_project_id(in_str):
-    match = re.search(PROJECT_ID_REGEX, in_str)
-    return match.group(1) if match else ''
-
-
-# Add and delete projects
-@st.experimental_dialog('Add a new project', width='large')
-def add_project():
-    if 'environments' not in st.session_state or st.session_state['environments'].empty:
-        st.info("Please setup environments first")
+    # Stack Selection
+    st.markdown('---')
+    selected_stack = stack_dialog()
+    if selected_stack:
+        st.session_state['stack'] = selected_stack
+    elif 'stack' not in st.session_state:
+        st.warning("Please select or enter a Keboola stack to continue")
         return
 
-    project_name = st.text_input('Project Name')
-    st.caption('Using as folder name in the SCM repository')
-    links = {}
+    # Project Mapping
+    st.markdown('---')
+    st.subheader('Project Mapping', help="Map projects to environments for the CI/CD pipeline")
 
-    st.divider()
+    # Project controls
+    col1, col2, col3 = st.columns(3)
+    if col1.button('➕ Add a new project', use_container_width=True):
+        add_project_dialog()
+    if col2.button('✎ Edit a project', use_container_width=True):
+        edit_project_dialog()
+    if col3.button('➖ Delete a project', use_container_width=True):
+        delete_project_dialog()
 
-    for env_name in st.session_state['environments']['env_name'].unique():
-        st.subheader(f'{env_name}')
-        links[env_name] = st.text_input(f'link', key=f'link_{env_name}')
-        st.caption(f'Link to the project should be in the format: https://connection.keboola.com/admin/projects/*')
+    # Project table display
+    df = pd.DataFrame(columns=['project_name']) if st.session_state['project_mapping'].empty else st.session_state[
+        'project_mapping']
 
-    if st.button('Add'):
-        if project_name:
-            # check if links are filled and valid with stack
-            if all(str(st.session_state['environments']['stack'][
-                           st.session_state['environments']['env_name'] == env].values[0])
-                   in link for env, link in links.items()):
-                new_row = {'project_name': project_name}
-                if all(_parse_project_id(link).isdigit() for link in links.values()):
-                    for env_name in st.session_state['environments']['env_name'].unique():
-                        env_data = st.session_state['environments'][
-                            st.session_state['environments']['env_name'] == env_name]
-                        new_row[f'{env_name}_link'] = links[env_name]
-                        new_row[f'{env_name}_id'] = _parse_project_id(links[env_name])
+    # Basic column configuration
+    columns = ['project_name']
+    column_config = {
+        'project_name': 'Project Name'
+    }
 
-                    new_row_df = pd.DataFrame([new_row])
-                    st.session_state['project_mapping'] = pd.concat(
-                        [st.session_state['project_mapping'], new_row_df], ignore_index=True)
-                    st.rerun()
+    # Add columns for each environment
+    if 'environments' in st.session_state and not st.session_state['environments'].empty:
+        for env_name in st.session_state['environments']['env_name'].unique():
+            # Add project name column
+            project_col = f'{env_name}_project'
+            columns.append(project_col)
+
+            # Initialize project column if not exists
+            if project_col not in df.columns:
+                df[project_col] = None
+
+            # Add project URL column
+            url_col = f'{env_name}_url'
+            columns.append(url_col)
+
+            # Initialize URL column if not exists
+            if url_col not in df.columns:
+                df[url_col] = None
+
+            if not df.empty:
+                # Update project name column
+                df[project_col] = df.apply(
+                    lambda row: (
+                        f"{row[f'{env_name}_kbc_project_name']} ({str(row[f'{env_name}_projectId']).split('.')[0]})"
+                        if all(f'{env_name}_{key}' in row.index for key in ['kbc_project_name', 'projectId'])
+                        else "⚠️ Configuration needed"
+                    ),
+                    axis=1
+                )
+
+                # Update URL column
+                df[url_col] = df.apply(
+                    lambda row: row[f'{env_name}_url'] if f'{env_name}_url' in row.index else None,
+                    axis=1
+                )
+
+                # Update branchId from environment configuration
+                branch_id_col = f'{env_name}_branchId'
+
+                if not df.empty:
+                    df[branch_id_col] = df.apply(
+                        lambda row: row.get(f'{env_name}_branchId', '0'),  # Použijeme přímo uložené branchId
+                        axis=1
+                    )
                 else:
-                    st.warning('Link not contains valid project id. Please fill the correct link')
-            else:
-                st.warning(f'Please fill the project link in the same stack as the environment stack')
-        else:
-            st.warning('Please fill the project name')
+                    df[branch_id_col] = '0'
 
+            # Configure columns
+            column_config[project_col] = st.column_config.TextColumn(
+                f"Keboola Project ({env_name})",
+                help=f"Project name and ID for {env_name} environment"
+            )
+            column_config[url_col] = st.column_config.LinkColumn(
+                f"Keboola Project ({env_name}) Link",
+                help=f"Project URL for {env_name} environment"
+            )
 
-@st.experimental_dialog('Delete a project', width='large')
-def delete_project():
-    name_to_delete = st.selectbox('Project Name', st.session_state['project_mapping']['project_name'])
+    # Display the table
+    st.dataframe(
+        df[columns],
+        column_config=column_config,
+        use_container_width=True,
+        hide_index=True
+    )
 
-    if st.button('Delete'):
-        if name_to_delete in st.session_state['project_mapping']['project_name'].values:
-            st.session_state['project_mapping'] = st.session_state['project_mapping'][
-                st.session_state['project_mapping']['project_name'] != name_to_delete]
-            st.rerun()
-        else:
-            st.warning('Environment not found')
-
-
-col1, col2 = st.columns(2)
-if col1.button('➕ Add a new project', use_container_width=True):
-    add_project()
-
-if col2.button('➖ Delete a project', use_container_width=True):
-    delete_project()
-
-# Display the project mapping
-column_config = {'project_name': 'Project Name'}
-for env_name in st.session_state['environments']['env_name'].unique():
-    column_config[f'{env_name}_link'] = st.column_config.LinkColumn(f'{env_name}', display_text=PROJECT_ID_REGEX)
-
-st.dataframe(
-    st.session_state['project_mapping'][[col for col in st.session_state['project_mapping'].columns if
-                                         '_id' not in col and col not in ['stack', 'branch', 'environment']]],
-    column_config=column_config,
-    use_container_width=True,
-    hide_index=True
-)
-
-# Pipeline Actions
-st.divider()
-st.subheader('Pipeline Actions (Version Control Setup)')
-scm_platform = st.selectbox('SCM Platform', ['GitHub', 'GitLab', 'Bitbucket'], key='scm_platform')
-
-# Generate the environment
-if st.button('Generate Environment'):
+    # Generate workflow
     st.divider()
+    st.subheader('Generated CI/CD Workflow')
 
-    root_path = Path(__file__).parent
+    if (len(st.session_state['project_mapping']) > 0 and
+            len(st.session_state['environments']) > 0):
 
-    generator = WorkflowGenerator(str(root_path),
-                                  scm_platform,
-                                  st.session_state['environments'].to_dict(orient='records'),
-                                  st.session_state['project_mapping'].to_dict(orient='records'))
-
-    zip_path, zip_file_name = generator.get_zip_file()
-
-    with open(zip_path, "rb") as file:
-        st.download_button(
-            label=f"Download {scm_platform} CI/CD workflow",
-            data=file,
-            file_name=zip_file_name,
-            mime="application/zip"
+        generator = WorkflowGenerator(
+            str(Path(__file__).parent),
+            scm_platform,
+            st.session_state['stack'],
+            st.session_state['environments'].to_dict(orient='records'),
+            st.session_state['project_mapping'].to_dict(orient='records')
         )
-    st.markdown(f"# Setup Instructions ({scm_platform}):")
-    manual = generator.get_manual()
-    st.markdown(manual, unsafe_allow_html=True)
+
+        st.session_state['zip_path'], st.session_state['zip_file_name'] = generator.get_zip_file()
+        st.session_state['manual'] = generator.get_manual()
+
+        if 'zip_path' in st.session_state and 'manual' in st.session_state:
+            with open(st.session_state['zip_path'], "rb") as file:
+                st.download_button(
+                    label=f"Download {scm_platform} CI/CD workflow",
+                    data=file,
+                    file_name=st.session_state['zip_file_name'],
+                    mime="application/zip"
+                )
+            st.markdown(f"# Setup Instructions ({scm_platform}):")
+            st.markdown(st.session_state['manual'], unsafe_allow_html=True)
+
+
+if __name__ == "__main__":
+    main()

@@ -1,5 +1,5 @@
 # base.py
-from typing import List
+from typing import List, Dict
 import os
 import shutil
 import jinja2
@@ -27,7 +27,7 @@ class WorkflowGeneratorBase:
     _zip_output_folder: str
     _zip_file_name: str
 
-    def __init__(self, root_path, template_data: {}, list_of_templates: List[WorkflowTemplate]):
+    def __init__(self, root_path, template_data: Dict, list_of_templates: List[WorkflowTemplate]):
         self._root_path = root_path
         self._templates = list_of_templates
         self._template_data = template_data
