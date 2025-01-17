@@ -157,12 +157,13 @@ def main():
         hide_index=True
     )
 
-    # Generate workflow
-    st.divider()
-    st.subheader('Generated CI/CD Workflow')
+
 
     if (len(st.session_state['project_mapping']) > 0 and
             len(st.session_state['environments']) > 0):
+        # Generate workflow
+        st.divider()
+        st.subheader('Generated CI/CD Workflow')
 
         generator = WorkflowGenerator(
             str(Path(__file__).parent),
