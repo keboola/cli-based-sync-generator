@@ -84,7 +84,8 @@ def add_project_dialog():
                 options=branch_names,
                 index=0,
                 key=f'branch_{env_name}',
-                format_func=lambda x: f"{x[0]}{x[1]}"
+                format_func=lambda x: f"{x[0]}{x[1]}",
+                disabled=True
             )
             selected_branches[env_name] = selected_branch
         else:
@@ -117,7 +118,6 @@ def add_project_dialog():
 
 @st.dialog('Edit project', width='large')
 def edit_project_dialog():
-    """Dialog for editing a project."""
     if st.session_state['project_mapping'].empty:
         st.info("No projects to edit")
         return
@@ -127,10 +127,18 @@ def edit_project_dialog():
         options=st.session_state['project_mapping']['project_name'].tolist()
     )
 
+    st.divider()    
+
     if project_name_to_edit:
         project_data = st.session_state['project_mapping'][
             st.session_state['project_mapping']['project_name'] == project_name_to_edit
             ].iloc[0]
+
+        new_project_name = st.text_input(
+            'New Project Name',
+            value=project_name_to_edit,
+            help='Update the name of this project'
+        )
 
         env_names = st.session_state['environments']['env_name'].unique()
         tokens = {}
@@ -169,7 +177,8 @@ def edit_project_dialog():
                     options=branch_options,
                     index=current_index,
                     key=f'edit_branch_{env_name}',
-                    format_func=lambda x: f"{x[0]}{x[1]}"
+                    format_func=lambda x: f"{x[0]}{x[1]}",
+                    disabled=True
                 )
                 selected_branches[env_name] = selected_branch
             else:
@@ -177,22 +186,24 @@ def edit_project_dialog():
 
         if all_fields_valid and len(selected_branches) == len(env_names):
             if st.button('Save Changes'):
+                mask = st.session_state['project_mapping']['project_name'] == project_name_to_edit
+                
+                if new_project_name != project_name_to_edit:
+                    st.session_state['project_mapping'].loc[mask, 'project_name'] = new_project_name
+
                 for env_name in env_names:
                     project_data = validated_projects[env_name]
                     selected_branch = selected_branches[env_name]
                     branch_name, _, branch_id = selected_branch
 
-                    st.session_state['project_mapping'].loc[
-                        st.session_state['project_mapping']['project_name'] == project_name_to_edit,
-                        [
-                            f'{env_name}_token',
-                            f'{env_name}_projectId',
-                            f'{env_name}_kbc_project_name',
-                            f'{env_name}_url',
-                            f'{env_name}_branch',
-                            f'{env_name}_branchId'
-                        ]
-                    ] = [
+                    st.session_state['project_mapping'].loc[mask, [
+                        f'{env_name}_token',
+                        f'{env_name}_projectId',
+                        f'{env_name}_kbc_project_name',
+                        f'{env_name}_url',
+                        f'{env_name}_branch',
+                        f'{env_name}_branchId'
+                    ]] = [
                         tokens[env_name],
                         str(project_data['project_id']),
                         project_data['kbc_project_name'],
@@ -200,7 +211,7 @@ def edit_project_dialog():
                         branch_name,
                         str(branch_id)
                     ]
-                st.success(f'Project "{project_name_to_edit}" updated successfully!')
+                st.success(f'Project "{new_project_name}" updated successfully!')
                 st.rerun()
         else:
             if not all_fields_valid:

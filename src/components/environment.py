@@ -5,8 +5,8 @@ from ..utils.session_state import update_environment
 @st.dialog('Add a new environment')
 def add_environment_dialog():
     """Dialog for adding a new environment."""
-    env_name = st.text_input('Environment Name', help='Name of the VCS environment')
-    branch = st.text_input('Branch', help='Branch name in the VCS repository')
+    env_name = st.text_input('Environment Name', help='Name of the Git environment')
+    branch = st.text_input('Branch', help='Branch name in the Git repository')
 
     if st.button('Add'):
         if env_name and branch:
@@ -37,7 +37,7 @@ def edit_environment_dialog():
         ].iloc[0]
 
         branch = st.text_input('Branch', value=selected_env['branch'])
-        st.caption('Branch name in the VCS repository')
+        st.caption('Branch name in the Git repository')
 
         if st.button('Save Changes'):
             if branch:

@@ -28,17 +28,17 @@ def main():
     # Initialize session state
     init_session_state()
 
-    # Setup VCS
+    # Setup Git
     st.markdown('---')
-    st.subheader('Pipeline Actions (Version Control Setup)')
-    scm_platform = st.selectbox('VCS Platform',
+    st.subheader('Pipeline Actions (Version Control Setup - Git)')
+    scm_platform = st.selectbox('Git Platform',
                                 ['GitHub'],
                                 key='scm_platform',
                                 help="Choose your version control system where you want to set up the CI/CD pipeline")
 
     # Setup Environments
     st.markdown('---')
-    st.subheader('Setup VCS Environments', help="Add, edit or delete environments to be used in the CI/CD pipeline")
+    st.subheader('Setup Git Environments', help="Add, edit or delete environments to be used in the CI/CD pipeline")
 
     # Environment controls
     col1, col2, col3 = st.columns(3)
@@ -156,8 +156,6 @@ def main():
         use_container_width=True,
         hide_index=True
     )
-
-
 
     if (len(st.session_state['project_mapping']) > 0 and
             len(st.session_state['environments']) > 0):
