@@ -5,6 +5,7 @@ __pycache__/
 .vscode
 .DS_Store
 .env
+.venv
 
 
 /src/workflow_generator/github/workflows/*.*

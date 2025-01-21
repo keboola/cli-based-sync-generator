@@ -21,13 +21,12 @@ templates = [
 
 class GithubGenerator(WorkflowGeneratorBase):
 
-    def __init__(self, root_path: str, environments: dict[object], project_mapping: list[dict]):
+    def __init__(self, root_path: str, stack: str, environments: dict[object], project_mapping: dict[object]):
         self._root_path = root_path
+        self._stack = stack
         self._projects = [project['project_name'] for project in project_mapping]
         self._environments = environments
         self._project_mapping = self._transform_mapping(project_mapping)
-        print(self._environments)
-        print(self._project_mapping)
 
         self._template_data = {
             "projects": f"{', '.join(self._projects)}",
@@ -43,7 +42,7 @@ class GithubGenerator(WorkflowGeneratorBase):
             in templates]
         super().__init__(root_path, self._template_data, self._templates)
 
-    def _transform_mapping(self, project_mapping: list[dict]) -> dict:
+    def _transform_mapping(self, project_mapping: dict[object]) -> dict:
         """
         Converts the project mapping to a dictionary in convenient way
         project_name:env: {id: , link: }
@@ -59,9 +58,17 @@ class GithubGenerator(WorkflowGeneratorBase):
             for environment in self._environments:
                 env_name = environment['env_name']
                 project_mapping_dict[project['project_name']][env_name] = {}
-                project_mapping_dict[project['project_name']][env_name]['id'] = project[f'{env_name}_id']
-                project_mapping_dict[project['project_name']][env_name]['link'] = project[f'{env_name}_link']
-
+                
+                # Kontrola existence klíčů a nastavení výchozích hodnot
+                id_key = f'{env_name}_projectId'
+                link_key = f'{env_name}_url'
+                token_key = f'{env_name}_token'
+                branchId_key = f'{env_name}_branchId'
+                
+                project_mapping_dict[project['project_name']][env_name]['id'] = project.get(id_key, '')
+                project_mapping_dict[project['project_name']][env_name]['link'] = project.get(link_key, '')
+                project_mapping_dict[project['project_name']][env_name]['token'] = project.get(token_key, '')
+                project_mapping_dict[project['project_name']][env_name]['branchId'] = project.get(branchId_key, '')
         return project_mapping_dict
 
     def _add_root_path(self, path: str):
@@ -71,43 +78,90 @@ class GithubGenerator(WorkflowGeneratorBase):
         return '\n - ' + '\n- '.join([f"**{environment['env_name']}**" for environment in self._environments])
 
     def _get_env_secrets_table_md(self) -> str:
-        col_count = len(self._environments) + 1
         table_elements = []
-        table_elements.append(f"| | {' | '.join([environment['env_name'] for environment in self._environments])} |\n")
-        table_elements.append('| ' + ' | '.join(['---' for _ in range(col_count)]) + ' |\n')
-        table_elements.append(
-            '| **Variable Name** | ' + ' | '.join(['**Value**' for _ in range(col_count - 1)]) + ' |\n')
-        for project in self._projects:
-            cell_data = [f'*Storage token for project `{project}` in `{environment["env_name"]}`*' for environment in
-                         self._environments]
-            table_elements.append(
-                f"| KBC_SAPI_TOKEN_{project} | {' | '.join(cell_data)} |\n")
+        # Add style for copy functionality
+        table_elements.append("""
+<style>
+.copy-value {
+    user-select: all;
+    cursor: pointer;
+}
+.copy-value:active {
+    background-color: #e0e0e0;
+}
+</style>
+""")
+        
+        # Hlavička s Environment jako prvním sloupcem
+        table_elements.append("| Environment | Secret | Value |\n")
+        table_elements.append("| --- | --- | --- |\n")
+        
+        # Seřadíme prostředí podle názvu
+        sorted_environments = sorted(self._environments, key=lambda x: x['env_name'])
+        
+        # Pro každé prostředí a projekt vytvoříme samostatný řádek
+        for environment in sorted_environments:
+            for project in sorted(self._projects):
+                secret_name = f"KBC_SAPI_TOKEN_{project}"
+                secret_value = self._project_mapping[project][environment['env_name']]['token']
+                table_elements.append(
+                    f"| {environment['env_name']} | "
+                    f"<span class='copy-value'>{secret_name}</span> | "
+                    f"<code class='copy-value'>{secret_value}</code> |\n")
 
         return ''.join(table_elements)
 
     def _get_env_variables_table_md(self) -> str:
-        col_count = len(self._environments) + 1
         table_elements = []
-        table_elements.append(f"| | {' | '.join([environment['env_name'] for environment in self._environments])} |\n")
-        cell_data = [f'`{environment["stack"]}`' for environment in self._environments]
-        table_elements.append('| ' + ' | '.join(['---' for _ in range(col_count)]) + ' |\n')
+        table_elements.append("""
+<style>
+.copy-value {
+    user-select: all;
+    cursor: pointer;
+}
+.copy-value:active {
+    background-color: #e0e0e0;
+}
+</style>
+""")
+        
+        # Hlavička s Environment jako prvním sloupcem
+        table_elements.append("| Environment | Variable | Value |\n")
+        table_elements.append("| --- | --- | --- |\n")
 
-        table_elements.append(
-            '| **Variable Name** | ' + ' | '.join(['**Value**' for _ in range(col_count - 1)]) + ' |\n')
-        table_elements.append(f"| KBC_SAPI_HOST | {' | '.join(cell_data)} |\n")
+        # Seřadíme prostředí podle názvu
+        sorted_environments = sorted(self._environments, key=lambda x: x['env_name'])
 
-        for project in self._project_mapping:
-            cell_data = [f'`{self._project_mapping[project][environment["env_name"]]["id"]}`' for environment in
-                         self._environments]
+        # Pro každé prostředí přidáme všechny proměnné
+        for environment in sorted_environments:
+            # KBC_SAPI_HOST pro každé prostředí
+            var_name = f"KBC_SAPI_HOST"
+            value = self._stack
             table_elements.append(
-                f"| KBC_PROJECT_ID_{project} | {' | '.join(cell_data)} |\n")
-
-            branch_hints = [f'*Main branch ID of `{project}` in `{environment["env_name"]}`*' for environment in
-                         self._environments]
-            table_elements.append(
-                f"| KBC_BRANCH_ID_{project} | {' | '.join(branch_hints)} |\n")
-
-
+                f"| {environment['env_name']} | "
+                f"<span class='copy-value'>{var_name}</span> | "
+                f"<code class='copy-value'>{value}</code> |\n"
+            )
+            
+            # Project ID a Branch ID pro každý projekt
+            for project in sorted(self._projects):
+                # Project ID
+                var_name = f"KBC_PROJECT_ID_{project}"
+                value = self._project_mapping[project][environment['env_name']]['id']
+                table_elements.append(
+                    f"| {environment['env_name']} | "
+                    f"<span class='copy-value'>{var_name}</span> | "
+                    f"<code class='copy-value'>{value}</code> |\n"
+                )
+                
+                # Branch ID
+                var_name = f"KBC_BRANCH_ID_{project}"
+                value = self._project_mapping[project][environment['env_name']]['branchId']
+                table_elements.append(
+                    f"| {environment['env_name']} | "
+                    f"<span class='copy-value'>{var_name}</span> | "
+                    f"<code class='copy-value'>{value}</code> |\n"
+                )
 
         return ''.join(table_elements)
 
@@ -124,7 +178,6 @@ class GithubGenerator(WorkflowGeneratorBase):
                                         env_secrets_table=self._get_env_secrets_table_md(),
                                         env_variables_table=self._get_env_variables_table_md(),
                                         **images)
-
         return manual
 
     @staticmethod
