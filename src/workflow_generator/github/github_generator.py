@@ -79,6 +79,19 @@ class GithubGenerator(WorkflowGeneratorBase):
 
     def _get_env_secrets_table_md(self) -> str:
         table_elements = []
+        # Add style for copy functionality
+        table_elements.append("""
+<style>
+.copy-value {
+    user-select: all;
+    cursor: pointer;
+}
+.copy-value:active {
+    background-color: #e0e0e0;
+}
+</style>
+""")
+        
         # Hlavička s Environment jako prvním sloupcem
         table_elements.append("| Environment | Secret | Value |\n")
         table_elements.append("| --- | --- | --- |\n")
@@ -89,13 +102,29 @@ class GithubGenerator(WorkflowGeneratorBase):
         # Pro každé prostředí a projekt vytvoříme samostatný řádek
         for environment in sorted_environments:
             for project in sorted(self._projects):
+                secret_name = f"KBC_SAPI_TOKEN_{project}"
+                secret_value = self._project_mapping[project][environment['env_name']]['token']
                 table_elements.append(
-                    f"| {environment['env_name']} | KBC_SAPI_TOKEN_{project} | `{self._project_mapping[project][environment['env_name']]['token']}` |\n")
+                    f"| {environment['env_name']} | "
+                    f"<span class='copy-value'>{secret_name}</span> | "
+                    f"<code class='copy-value'>{secret_value}</code> |\n")
 
         return ''.join(table_elements)
 
     def _get_env_variables_table_md(self) -> str:
         table_elements = []
+        table_elements.append("""
+<style>
+.copy-value {
+    user-select: all;
+    cursor: pointer;
+}
+.copy-value:active {
+    background-color: #e0e0e0;
+}
+</style>
+""")
+        
         # Hlavička s Environment jako prvním sloupcem
         table_elements.append("| Environment | Variable | Value |\n")
         table_elements.append("| --- | --- | --- |\n")
@@ -106,14 +135,33 @@ class GithubGenerator(WorkflowGeneratorBase):
         # Pro každé prostředí přidáme všechny proměnné
         for environment in sorted_environments:
             # KBC_SAPI_HOST pro každé prostředí
-            table_elements.append(f"| {environment['env_name']} | KBC_SAPI_HOST | `{self._stack}` |\n")
+            var_name = f"KBC_SAPI_HOST"
+            value = self._stack
+            table_elements.append(
+                f"| {environment['env_name']} | "
+                f"<span class='copy-value'>{var_name}</span> | "
+                f"<code class='copy-value'>{value}</code> |\n"
+            )
             
             # Project ID a Branch ID pro každý projekt
             for project in sorted(self._projects):
+                # Project ID
+                var_name = f"KBC_PROJECT_ID_{project}"
+                value = self._project_mapping[project][environment['env_name']]['id']
                 table_elements.append(
-                    f"| {environment['env_name']} | KBC_PROJECT_ID_{project} | `{self._project_mapping[project][environment['env_name']]['id']}` |\n")
+                    f"| {environment['env_name']} | "
+                    f"<span class='copy-value'>{var_name}</span> | "
+                    f"<code class='copy-value'>{value}</code> |\n"
+                )
+                
+                # Branch ID
+                var_name = f"KBC_BRANCH_ID_{project}"
+                value = self._project_mapping[project][environment['env_name']]['branchId']
                 table_elements.append(
-                    f"| {environment['env_name']} | KBC_BRANCH_ID_{project} | `{self._project_mapping[project][environment['env_name']]['branchId']}` |\n")
+                    f"| {environment['env_name']} | "
+                    f"<span class='copy-value'>{var_name}</span> | "
+                    f"<code class='copy-value'>{value}</code> |\n"
+                )
 
         return ''.join(table_elements)
 
@@ -130,7 +178,6 @@ class GithubGenerator(WorkflowGeneratorBase):
                                         env_secrets_table=self._get_env_secrets_table_md(),
                                         env_variables_table=self._get_env_variables_table_md(),
                                         **images)
-
         return manual
 
     @staticmethod

@@ -184,6 +184,12 @@ def main():
                 )
             st.markdown(f"# Setup Instructions ({scm_platform}):")
             st.markdown(st.session_state['manual'], unsafe_allow_html=True)
+            # Add some spacing at the bottom of the page
+            st.write("")
+            st.write("")
+            st.write("")
+            st.markdown('---')
+
 
 
 if __name__ == "__main__":
