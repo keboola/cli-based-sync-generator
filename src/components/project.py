@@ -59,7 +59,7 @@ def add_project_dialog():
     env_names = st.session_state['environments']['env_name'].unique()
     project_name = st.text_input('Project Name',
                                  help='Create a name for the project group will be used as folders in VCS for your '
-                                      'Keboola project sources').upper()  # noqa
+                                      'Keboola project sources').upper()
 
     tokens = {}
     validated_projects = {}
