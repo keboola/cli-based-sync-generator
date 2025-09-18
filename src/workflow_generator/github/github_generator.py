@@ -75,7 +75,7 @@ class GithubGenerator(WorkflowGeneratorBase):
         return Path(self._root_path).joinpath(path).as_posix()
 
     def _get_env_md_list(self):
-        return '\n - ' + '\n- '.join([f"**{environment['env_name']}**" for environment in self._environments])
+        return '\n    - ' + '\n    - '.join([f"**{environment['env_name']}**" for environment in self._environments])
 
     def _get_env_secrets_table_md(self) -> str:
         table_elements = []
@@ -165,6 +165,10 @@ class GithubGenerator(WorkflowGeneratorBase):
 
         return ''.join(table_elements)
 
+    def _get_branch_table_md(self) -> str:
+        return '\n    - ' + '\n    - '.join([f"`git checkout -b {str(environment['branch'])}`"
+                                      for environment in self._environments])
+
     def get_manual(self):
         manual_files_path = self._add_root_path(MANUAL_FILES_DIR)
         manual_template = open(Path(manual_files_path + "/github_manual.md"), "r").read()
@@ -177,6 +181,7 @@ class GithubGenerator(WorkflowGeneratorBase):
         manual = manual_template.format(env_list=self._get_env_md_list(),
                                         env_secrets_table=self._get_env_secrets_table_md(),
                                         env_variables_table=self._get_env_variables_table_md(),
+                                        branch_table=self._get_branch_table_md(),
                                         **images)
         return manual
 
@@ -236,7 +241,7 @@ class GithubGenerator(WorkflowGeneratorBase):
                 "name": f"{project}",
                 "with": {
                     "workdir": project,
-                    "kbcSapiHost": f"KBC_SAPI_HOST",
+                    "kbcSapiHost": "KBC_SAPI_HOST",
                     "kbcSapiToken": f"KBC_SAPI_TOKEN_{project}",
                     "kbcProjectId": f"KBC_PROJECT_ID_{project}",
                     "kbcBranchId": f"KBC_BRANCH_ID_{project}"

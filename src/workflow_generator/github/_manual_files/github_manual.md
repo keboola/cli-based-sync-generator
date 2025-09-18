@@ -5,15 +5,16 @@
 1. Download generated Github Actions zip file using the button above.
 2. Create and pull github repository.
 3. Unpack the `git_actions.zip` in the repository root folder
-    1. This will create a `.github` actions folder, overwrite if it exists.
+   - This will create a `.github` actions folder, overwrite if it exists.
 4. Run the following commands:
     1. `git add .`
     2. `git commit -m "Initial commit"`
     3. `git push`
-5. Create long-lived git branches for your environment. (aside of the main one)
-   1. E.g. `git checkout -b DEV `
+5. Create long-lived git branches for your environment.
+    {branch_table}
 6. Commit and push to each created branch.
-   1. This step may be skipped if perform KBC PULL first on the main branch and then create branches in the Github repository off that one.
+    - This step may be skipped if perform KBC PULL first on the main branch and then create branches in the Github 
+   repository off that one.
 7. In the repository [settings](https://docs.github.com/en/actions/deployment/targeting-different-environments/using-environments-for-deployment#creating-an-environment), create the following environments:
     {env_list}
 
@@ -23,7 +24,8 @@
 
 
 8. You may set the ENV restrictions
-   1. Note that the github actions need access to both related environments (DEV/PROD) in order to perform comparison validations.
+   - Note that the github actions need access to both related environments (DEV/PROD) in order to perform comparison 
+   validations.
 
 <p align="center">
     <img src="data:image/png;base64,{branch_protection_img_path}" alt="branch_protection_img_path" width="600">
